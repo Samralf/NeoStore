@@ -1,0 +1,3 @@
+import { env } from "cloudflare:workers";
+export async function setupGoogleAuth(){await env.DB.batch([env.DB.prepare("CREATE TABLE IF NOT EXISTS google_accounts (google_sub TEXT PRIMARY KEY,customer_id INTEGER NOT NULL UNIQUE,email TEXT NOT NULL,name TEXT NOT NULL,created_at TEXT NOT NULL,last_login_at TEXT NOT NULL,FOREIGN KEY(customer_id) REFERENCES customers(id))"),env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_google_accounts_email ON google_accounts(email)")])}
+export function googleConfig(){const e=env as unknown as {GOOGLE_CLIENT_ID?:string;GOOGLE_CLIENT_SECRET?:string;PUBLIC_SITE_URL?:string};return{clientId:e.GOOGLE_CLIENT_ID||"",clientSecret:e.GOOGLE_CLIENT_SECRET||"",siteUrl:(e.PUBLIC_SITE_URL||"").replace(/\/$/,"")}}

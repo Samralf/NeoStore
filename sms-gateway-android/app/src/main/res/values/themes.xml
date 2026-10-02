@@ -1,0 +1,1 @@
+<resources><style name="Theme.NeoGateway" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#19579B</item><item name="android:navigationBarColor">#FFFFFF</item><item name="android:statusBarColor">#123E70</item></style></resources>

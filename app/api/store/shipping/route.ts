@@ -1,0 +1,2 @@
+import { governorates,shippingConfig } from '../../../../lib/shipping';
+export async function GET(){const config=await shippingConfig();return Response.json({freeShipping:config.freeShipping,governorates:governorates.filter(([en])=>config.enabled[en]).map(([nameEn,nameAr])=>({nameEn,nameAr,price:config.freeShipping?0:config.prices[nameEn],originalPrice:config.prices[nameEn]}))},{headers:{'cache-control':'public,max-age=30'}})}

@@ -1,0 +1,9 @@
+import { env } from 'cloudflare:workers';
+const enc=new TextEncoder(),maxAge=60*60*24*30;
+async function sign(value:string){const key=await crypto.subtle.importKey('raw',enc.encode(env.SESSION_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);const out=await crypto.subtle.sign('HMAC',key,enc.encode(value));return[...new Uint8Array(out)].map(v=>v.toString(16).padStart(2,'0')).join('')}
+export async function customerCookie(customerId:number){const expires=Math.floor(Date.now()/1000)+maxAge,payload=`${customerId}.${expires}`;return`${payload}.${await sign(payload)}`}
+export function customerCookieHeader(value:string,request:Request){const secure=new URL(request.url).protocol==='https:'?'; Secure':'';return`neo_customer=${value}; HttpOnly; SameSite=Lax${secure}; Path=/; Max-Age=${maxAge}`}
+export async function customerId(request:Request){const raw=request.headers.get('cookie')?.match(/(?:^|;\s*)neo_customer=([^;]+)/)?.[1];if(!raw)return null;const[id,expires,sig]=raw.split('.');if(!id||!expires||!sig||Number(expires)<Date.now()/1000)return null;return sig===await sign(`${id}.${expires}`)?Number(id):null}
+export async function verifiedPhoneCookie(phone:string){const expires=Math.floor(Date.now()/1000)+600,payload=`${phone}.${expires}`;return`${payload}.${await sign(payload)}`}
+export function verifiedPhoneHeader(value:string,request:Request){const secure=new URL(request.url).protocol==='https:'?'; Secure':'';return`neo_verified_phone=${value}; HttpOnly; SameSite=Strict${secure}; Path=/api/store/orders; Max-Age=600`}
+export async function verifiedPhone(request:Request){const raw=request.headers.get('cookie')?.match(/(?:^|;\s*)neo_verified_phone=([^;]+)/)?.[1];if(!raw)return null;const[phone,expires,sig]=raw.split('.');if(!phone||!expires||!sig||Number(expires)<Date.now()/1000)return null;return sig===await sign(`${phone}.${expires}`)?phone:null}

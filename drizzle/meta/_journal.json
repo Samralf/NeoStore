@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788429609617,
+      "tag": "0000_nebulous_silver_centurion",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788429649528,
+      "tag": "0001_crazy_lorna_dane",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788430434841,
+      "tag": "0002_ancient_baron_zemo",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788431211975,
+      "tag": "0003_sad_king_cobra",
+      "breakpoints": true
+    }
+  ]
+}
