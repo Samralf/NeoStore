@@ -5,6 +5,8 @@ import {
   setupSpecialPrice,
 } from "../../../lib/product-pricing";
 import { setupCategories } from "../../../lib/categories";
+import { writeAudit } from "../../../lib/audit-log";
+import { clientIp } from "../../../lib/security";
 
 type Input = {
   id?: number;
@@ -115,6 +117,7 @@ export async function POST(request: Request) {
           now,
         )
         .run();
+    await writeAudit('product_created', clientIp(request));
     return Response.json({ ok: true, id: row?.id }, { status: 201 });
   } catch {
     return Response.json(
@@ -166,6 +169,7 @@ export async function PATCH(request: Request) {
       { status: 409 },
     );
   }
+  await writeAudit('product_updated', clientIp(request));
   return Response.json({ ok: true });
 }
 export async function DELETE(request: Request) {
@@ -178,5 +182,6 @@ export async function DELETE(request: Request) {
   await env.DB.prepare("UPDATE products SET archived=1,updated_at=? WHERE id=?")
     .bind(new Date().toISOString(), id)
     .run();
+  await writeAudit('product_archived', clientIp(request));
   return Response.json({ ok: true });
 }

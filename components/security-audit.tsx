@@ -8,6 +8,9 @@ const labels: Record<string, string> = {
   admin_login_failed: 'محاولة دخول غير ناجحة',
   admin_login_rate_limited: 'إيقاف محاولات دخول كثيرة',
   admin_password_changed: 'تم تغيير كلمة المرور',
+  product_created: 'تم إنشاء صنف',
+  product_updated: 'تم تعديل صنف',
+  product_archived: 'تمت أرشفة صنف',
 };
 
 export default function SecurityAudit() {
