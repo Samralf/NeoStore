@@ -483,6 +483,16 @@ export default function Store() {
           onLogout={logout}
         />
       )}
+      <a
+        className="whatsapp-float"
+        href="https://wa.me/201148141496?text=Hello%20Neo%20Coffee%2C%20I%20need%20support."
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Contact Neo Coffee support on WhatsApp"
+        title={lang === "en" ? "WhatsApp support" : "دعم واتساب"}
+      >
+        <span>◔</span><b>{lang === "en" ? "Support" : "الدعم"}</b>
+      </a>
     </main>
   );
 }
