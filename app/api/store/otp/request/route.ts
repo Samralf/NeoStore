@@ -5,9 +5,16 @@ import {
   smsGatewayConfigured,
 } from "../../../../../lib/sms-gateway";
 import { isPhoneBlocked, recordBlockedAttempt } from "../../../../../lib/phone-blocks";
+import { clientIp, consumeRateLimit } from "../../../../../lib/security";
 
 export async function POST(request: Request) {
   await setupOtp();
+  const ipLimit = await consumeRateLimit("otp-request", clientIp(request), 12, 10 * 60);
+  if (!ipLimit.allowed)
+    return Response.json(
+      { error: "Too many verification requests. Please try again later.", retryAfter: ipLimit.retryAfter },
+      { status: 429, headers: { "retry-after": String(ipLimit.retryAfter) } },
+    );
   const body = await request.json<{ phone?: string }>();
   const phone = normalizePhone(body.phone || "");
   if (!phone)

@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { isAuthenticated } from "../../../lib/auth";
 import { setupProductImages } from "../../../lib/product-images";
+import { isSafeImage } from "../../../lib/security";
 export async function GET(r: Request) {
   if (!(await isAuthenticated(r)))
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,7 +34,7 @@ export async function POST(r: Request) {
   if (files.length > 8)
     return Response.json({ error: "الحد الأقصى 8 صور للصنف" }, { status: 400 });
   for (const file of files) {
-    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024)
+    if (!isSafeImage(file))
       return Response.json(
         { error: "الصور فقط وبحد أقصى 5MB للصورة" },
         { status: 400 },
