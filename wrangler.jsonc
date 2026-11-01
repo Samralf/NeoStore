@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "neo-coffee-store",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "PUBLIC_SITE_URL": "https://neo-coffee-store.samehraafat85.workers.dev"
+  },
+  "assets": { "directory": "dist/client" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "neo-coffee-store-db",
+      "database_id": "179371e9-eae1-4fef-91e7-9b3de90be7d9"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "FILES", "bucket_name": "neo-coffee-store-files" }
+  ],
+  "observability": { "enabled": true }
+}
