@@ -2,7 +2,9 @@ import { env } from 'cloudflare:workers';
 
 const encoder = new TextEncoder();
 const maxAge = 60 * 60 * 12;
-const iterations = 180000;
+// Cloudflare Workers Web Crypto supports PBKDF2 up to 100,000 iterations.
+// This remains deliberately expensive while keeping login compatible in production.
+const iterations = 100000;
 
 function toHex(bytes: ArrayBuffer) {
   return [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
