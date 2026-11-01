@@ -18,7 +18,7 @@ export function proxy(request: Request) {
   const isApi = url.pathname.startsWith('/api/');
   const deviceGateway = url.pathname === '/api/sms-gateway/jobs';
   const origin = request.headers.get('origin');
-  const expectedOrigin = `${url.protocol}//neocoffeestore.com`;
+  const expectedOrigin = `${url.protocol}//${host}`;
   // Browsers attach Origin to cross-site fetch/form writes. Requests without an
   // Origin are kept for the authenticated Android gateway and server tooling.
   if (isWrite && isApi && !deviceGateway && origin && origin !== expectedOrigin) {
