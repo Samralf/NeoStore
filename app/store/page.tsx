@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import CustomerEntry from "../../components/customer-entry";
+import CustomerEntry from "../../components/customer-entry-v2";
 import CustomerProfile from "../../components/customer-profile";
 import StoreCart from "../../components/store-cart";
 
