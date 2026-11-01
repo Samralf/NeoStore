@@ -1,7 +1,10 @@
 import { env } from "cloudflare:workers";
 
+let smsGatewayReady: Promise<void> | undefined;
+
 export async function setupSmsGateway() {
-  await env.DB.prepare(
+  smsGatewayReady ??= (async () => {
+    await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS sms_outbox(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       phone TEXT NOT NULL,
@@ -13,17 +16,19 @@ export async function setupSmsGateway() {
       sent_at TEXT,
       error TEXT
     )`,
-  ).run();
-  await env.DB.prepare(
+    ).run();
+    await env.DB.prepare(
     "CREATE INDEX IF NOT EXISTS idx_sms_outbox_status_created ON sms_outbox(status,created_at)",
-  ).run();
-  await env.DB.prepare(
+    ).run();
+    await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS sms_gateway_state(
       id INTEGER PRIMARY KEY CHECK(id=1),
       last_poll_at TEXT,
       last_delivery_at TEXT
     )`,
-  ).run();
+    ).run();
+  })();
+  return smsGatewayReady;
 }
 
 export function smsGatewayConfigured() {

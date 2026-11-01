@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       ? `SELECT c.*,0 product_count FROM categories c WHERE c.visible_on_website=1 ORDER BY c.sort_order,c.id`
       : `SELECT c.*,(SELECT COUNT(*) FROM products p WHERE p.category=c.slug AND p.archived=0) product_count FROM categories c ORDER BY c.sort_order,c.id`,
   ).all();
-  return Response.json(rows.results);
+  return Response.json(rows.results, publicOnly ? { headers: { "cache-control": "public, max-age=120, s-maxage=120, stale-while-revalidate=300" } } : undefined);
 }
 
 export async function POST(request: Request) {

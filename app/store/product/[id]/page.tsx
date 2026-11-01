@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { env } from "cloudflare:workers";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { setupProductImages } from "../../../../lib/product-images";
 import {
   effectivePrice,
@@ -18,7 +19,7 @@ type Product = {
   special_price: number | null;
   website_quantity: number;
 };
-async function product(id: number) {
+const product = cache(async (id: number) => {
   await setupProductImages();
   await setupSpecialPrice();
   await setupCategories();
@@ -27,8 +28,8 @@ async function product(id: number) {
   )
     .bind(id)
     .first<Product>();
-}
-async function images(id: number) {
+});
+const images = cache(async (id: number) => {
   const r = await env.DB.prepare(
     "SELECT object_key FROM product_images WHERE product_id=? ORDER BY sort_order,id",
   )
@@ -37,7 +38,7 @@ async function images(id: number) {
   return r.results.map(
     (x) => `/api/store/image?key=${encodeURIComponent(x.object_key)}`,
   );
-}
+});
 export async function generateMetadata({
   params,
 }: {
