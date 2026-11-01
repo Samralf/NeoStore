@@ -1,5 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { currentPasswordHash, hashPassword, isAuthenticated, verifyPassword } from '../../../../lib/auth';
+import { clientIp } from '../../../../lib/security';
+import { writeAudit } from '../../../../lib/audit-log';
 
 export async function PATCH(request:Request) {
   if(!await isAuthenticated(request)) return Response.json({error:'انتهت جلسة الدخول'},{status:401});
@@ -15,5 +17,6 @@ export async function PATCH(request:Request) {
     env.DB.prepare("INSERT INTO settings(key,value,updated_at) VALUES('admin_password_hash',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(nextHash,now),
     env.DB.prepare("INSERT INTO settings(key,value,updated_at) VALUES('auth_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(String(version),now),
   ]);
+  await writeAudit('admin_password_changed', clientIp(request));
   return new Response(JSON.stringify({ok:true}),{headers:{'content-type':'application/json','set-cookie':'neo_session=; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age=0'}});
 }

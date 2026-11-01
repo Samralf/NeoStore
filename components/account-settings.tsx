@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useState } from "react";
+import SecurityAudit from "./security-audit";
 
 export default function AccountSettings() {
   const [message, setMessage] = useState(""),
@@ -103,6 +104,7 @@ export default function AccountSettings() {
           المرور وأكواد OTP وأسرار الجلسات لا يتم تصديرها.
         </small>
       </div>
+      <SecurityAudit />
     </section>
   );
 }
