@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Neo Coffee">
+  <rect width="64" height="64" rx="18" fill="#D9A93D"/>
+  <path fill="#0F467B" d="M18 16h13v3h-3v26h6v3H18v-3h5V19h-5zm17 0h11l8 21V19h-4v-3h11v3h-4v32H47L39 30v15h4v3H32v-3h4V19h-4v-3h3z"/>
+  <path fill="#0F467B" d="M16 18h3v28h-3z" opacity=".92"/>
+</svg>

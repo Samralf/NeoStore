@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "نيو كافي ستور | إدارة المتجر",
   description: "إدارة المبيعات والمخزون والطلبات في نيو كافي ستور",
   robots: { index: false, follow: false },
-  icons: { icon: "/favicon.svg" },
+  icons: { icon: "/neo-coffee-icon.svg" },
   manifest: "/manifest.webmanifest",
 };
 
