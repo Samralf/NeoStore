@@ -27,7 +27,7 @@ type StoreItem = {
   available: number;
   image: string | null;
 };
-type StoreProductResponse = { id: number; code: string; name_ar: string; category?: string; special_price?: number | null; sale_price: number; variant?: string | null; website_quantity: number; image_url?: string | null };
+type StoreProductResponse = { id: number; code: string; name_ar: string; name_en?: string | null; category?: string; special_price?: number | null; sale_price: number; variant?: string | null; website_quantity: number; image_url?: string | null };
 type StoreUser = { id: number; name: string; phone: string; email?: string | null; governorate?: string | null; address?: string | null; google_authenticated?: number };
 type CreateOrderResponse = { orderNumber: string; paymentMethod: string; error?: string };
 const copy = {
@@ -143,7 +143,7 @@ export default function Store() {
             (rows as StoreProductResponse[]).map((p, i) => ({
               id: p.id,
               brand: p.code,
-              name: p.name_ar,
+              name: p.name_en?.trim() || p.name_ar,
               ar: p.name_ar,
               cat: String(p.category || "coffee"),
               price:

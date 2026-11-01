@@ -11,6 +11,7 @@ type Input = {
   code?: string;
   barcode?: string;
   nameAr?: string;
+  nameEn?: string;
   category?: string;
   variant?: string;
   purchasePrice?: number;
@@ -28,7 +29,7 @@ type Input = {
 async function setup() {
   await env.DB.batch([
     env.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT NOT NULL UNIQUE,barcode TEXT UNIQUE,name_ar TEXT NOT NULL,variant TEXT,purchase_price REAL NOT NULL DEFAULT 0,operating_cost REAL NOT NULL DEFAULT 0,sale_price REAL NOT NULL DEFAULT 0,stock_quantity INTEGER NOT NULL DEFAULT 0,reserved_quantity INTEGER NOT NULL DEFAULT 0,website_quantity INTEGER NOT NULL DEFAULT 0,minimum_stock INTEGER NOT NULL DEFAULT 0,visible_on_website INTEGER NOT NULL DEFAULT 0,archived INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)`,
+      `CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT NOT NULL UNIQUE,barcode TEXT UNIQUE,name_ar TEXT NOT NULL,name_en TEXT,variant TEXT,purchase_price REAL NOT NULL DEFAULT 0,operating_cost REAL NOT NULL DEFAULT 0,sale_price REAL NOT NULL DEFAULT 0,stock_quantity INTEGER NOT NULL DEFAULT 0,reserved_quantity INTEGER NOT NULL DEFAULT 0,website_quantity INTEGER NOT NULL DEFAULT 0,minimum_stock INTEGER NOT NULL DEFAULT 0,visible_on_website INTEGER NOT NULL DEFAULT 0,archived INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)`,
     ),
     env.DB.prepare(
       `CREATE TABLE IF NOT EXISTS inventory_batches (id INTEGER PRIMARY KEY AUTOINCREMENT,product_id INTEGER NOT NULL,batch_number TEXT NOT NULL,production_date TEXT,expiry_date TEXT,received_quantity INTEGER NOT NULL,remaining_quantity INTEGER NOT NULL,unit_cost REAL NOT NULL,received_at TEXT NOT NULL,FOREIGN KEY(product_id) REFERENCES products(id))`,
@@ -44,6 +45,8 @@ async function setup() {
     await env.DB.prepare(
       "ALTER TABLE products ADD COLUMN category TEXT NOT NULL DEFAULT 'coffee'",
     ).run();
+  if (!columns.results.some((c) => c.name === "name_en"))
+    await env.DB.prepare("ALTER TABLE products ADD COLUMN name_en TEXT").run();
   await setupSpecialPrice();
   await setupCategories();
 }
@@ -77,12 +80,13 @@ export async function POST(request: Request) {
         .first<{ slug: string }>(),
       category = selectedCategory?.slug || "coffee",
       row = await env.DB.prepare(
-        `INSERT INTO products (code,barcode,name_ar,category,variant,purchase_price,operating_cost,sale_price,special_price,stock_quantity,website_quantity,minimum_stock,visible_on_website,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`,
+        `INSERT INTO products (code,barcode,name_ar,name_en,category,variant,purchase_price,operating_cost,sale_price,special_price,stock_quantity,website_quantity,minimum_stock,visible_on_website,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`,
       )
         .bind(
           body.code.trim(),
           body.barcode?.trim() || null,
           body.nameAr.trim(),
+          body.nameEn?.trim() || null,
           category,
           body.variant?.trim() || null,
           Number(body.purchasePrice || 0),
@@ -136,11 +140,12 @@ export async function PATCH(request: Request) {
     category = selectedCategory?.slug || "coffee";
   try {
     await env.DB.prepare(
-      "UPDATE products SET barcode=?,name_ar=?,category=?,variant=?,purchase_price=?,operating_cost=?,sale_price=?,special_price=?,stock_quantity=?,website_quantity=?,minimum_stock=?,visible_on_website=?,updated_at=? WHERE id=?",
+      "UPDATE products SET barcode=?,name_ar=?,name_en=?,category=?,variant=?,purchase_price=?,operating_cost=?,sale_price=?,special_price=?,stock_quantity=?,website_quantity=?,minimum_stock=?,visible_on_website=?,updated_at=? WHERE id=?",
     )
       .bind(
         body.barcode?.trim() || null,
         body.nameAr.trim(),
+        body.nameEn?.trim() || null,
         category,
         body.variant || null,
         Number(body.purchasePrice || 0),

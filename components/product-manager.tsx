@@ -10,6 +10,7 @@ type Product = {
   code: string;
   barcode: string | null;
   name_ar: string;
+  name_en: string | null;
   category: string;
   variant: string | null;
   purchase_price: number;
@@ -26,6 +27,7 @@ const empty = {
   code: "",
   barcode: "",
   nameAr: "",
+  nameEn: "",
   category: "coffee",
   variant: "",
   purchasePrice: 0,
@@ -82,7 +84,7 @@ export default function ProductManager({ initialId }: { initialId?: number }) {
         const q = query.trim().toLowerCase(),
           matches =
             !q ||
-            `${p.name_ar} ${p.code} ${p.barcode || ""} ${p.variant || ""}`
+            `${p.name_ar} ${p.name_en || ""} ${p.code} ${p.barcode || ""} ${p.variant || ""}`
               .toLowerCase()
               .includes(q);
         if (!matches) return false;
@@ -103,6 +105,7 @@ export default function ProductManager({ initialId }: { initialId?: number }) {
       code: String(f.get("code")),
       barcode: String(f.get("barcode")),
       nameAr: String(f.get("nameAr")),
+      nameEn: String(f.get("nameEn")),
       category: String(f.get("category")),
       variant: String(f.get("variant")),
       purchasePrice: Number(f.get("purchasePrice")),
@@ -346,6 +349,7 @@ function ProductForm({
         code: item.code,
         barcode: item.barcode || "",
         nameAr: item.name_ar,
+        nameEn: item.name_en || "",
         category: item.category || "coffee",
         variant: item.variant || "",
         purchasePrice: item.purchase_price,
@@ -389,6 +393,10 @@ function ProductForm({
           <label className="wide">
             اسم الصنف
             <input name="nameAr" defaultValue={values.nameAr} required />
+          </label>
+          <label className="wide" dir="ltr">
+            Product name in English
+            <input name="nameEn" defaultValue={values.nameEn} placeholder="e.g. Illy Classico Ground Coffee" />
           </label>
           <label className="wide">
             قسم المنتج
