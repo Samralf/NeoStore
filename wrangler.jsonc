@@ -5,9 +5,15 @@
   "compatibility_date": "2026-05-15",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "PUBLIC_SITE_URL": "https://neo-coffee-store.samehraafat85.workers.dev"
+    "PUBLIC_SITE_URL": "https://neocoffeestore.com"
   },
   "assets": { "directory": "dist/client" },
+  "routes": [
+    {
+      "pattern": "neocoffeestore.com",
+      "custom_domain": true
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
