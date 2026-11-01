@@ -12,6 +12,10 @@
     {
       "pattern": "neocoffeestore.com",
       "custom_domain": true
+    },
+    {
+      "pattern": "www.neocoffeestore.com",
+      "custom_domain": true
     }
   ],
   "d1_databases": [
