@@ -5,6 +5,7 @@ import CustomerEntry from "../../components/customer-entry-v2";
 import CustomerProfile from "../../components/customer-profile";
 import StoreCart from "../../components/store-cart";
 import { cartQuantity, reconcileCart } from "../../lib/store-cart";
+import { ANALYTICS_READY, trackEvent, type AnalyticsItem } from "../../lib/analytics";
 
 type Lang = "en" | "ar";
 type Category = string;
@@ -30,7 +31,10 @@ type StoreItem = {
 };
 type StoreProductResponse = { id: number; code: string; name_ar: string; name_en?: string | null; category?: string; special_price?: number | null; sale_price: number; variant?: string | null; website_quantity: number; image_url?: string | null };
 type StoreUser = { id: number; name: string; phone: string; email?: string | null; governorate?: string | null; address?: string | null; google_authenticated?: number };
-type CreateOrderResponse = { orderNumber: string; paymentMethod: string; error?: string };
+type CreateOrderResponse = { orderNumber: string; paymentMethod: string; total: number; status: string; error?: string };
+function analyticsItem(p: StoreItem, quantity: number): AnalyticsItem {
+  return {item_id:String(p.id),item_name:p.name,item_category:p.cat,price:p.price,quantity};
+}
 const copy = {
   en: {
     shop: "Shop",
@@ -206,12 +210,23 @@ export default function Store() {
   };
   const shown = cat === "all" ? items : items.filter((i) => i.cat === cat),
     count = Object.values(cart).reduce((a, b) => a + b, 0);
+  useEffect(()=>{
+    if(!productsLoaded) return;
+    const send=()=>trackEvent('view_item_list',{item_list_id:cat,items:items.filter(p=>cat==='all'||p.cat===cat).slice(0,200).map(p=>analyticsItem(p,1))});
+    send();window.addEventListener(ANALYTICS_READY,send);
+    return ()=>window.removeEventListener(ANALYTICS_READY,send);
+  },[items,cat,productsLoaded]);
   async function logout() {
     await fetch("/api/store/account", { method: "DELETE" });
     setUser(null);
     setProfile(false);
   }
   function changeCart(id: number, qty: number) {
+    const product=items.find(p=>p.id===id);
+    const difference=cartQuantity(qty,product?.available??0)-(cart[id]||0);
+    if(product&&difference) trackEvent(difference>0?'add_to_cart':'remove_from_cart',{
+      currency:'EGP',value:product.price*Math.abs(difference),items:[analyticsItem(product,Math.abs(difference))],
+    });
     setCart((c) => {
       const p = items.find((x) => x.id === id),
         next = { ...c },
@@ -239,6 +254,9 @@ export default function Store() {
       }),
       d = await r.json<CreateOrderResponse>();
     if (!r.ok) throw new Error(d.error || "Could not create order");
+    trackEvent('order_placed',{currency:'EGP',value:d.total,payment_type:d.paymentMethod,order_status:d.status,
+      items:items.filter(p=>cart[p.id]>0).map(p=>analyticsItem(p,cart[p.id])),
+    });
     setCart({});
     setDraft(null);
     return {
@@ -364,6 +382,7 @@ export default function Store() {
                 <a
                   className="product-title-link"
                   href={`/store/product/${p.id}`}
+                  onClick={()=>trackEvent('select_item',{item_list_id:cat,items:[analyticsItem(p,1)]})}
                 >
                   <h3>{rtl ? p.ar : p.name}</h3>
                 </a>
@@ -479,6 +498,8 @@ export default function Store() {
           close={() => setCartOpen(false)}
           change={changeCart}
           checkout={(data) => {
+            trackEvent('begin_checkout',{currency:'EGP',value:items.reduce((sum,p)=>sum+p.price*(cart[p.id]||0),0),items:items.filter(p=>cart[p.id]>0).map(p=>analyticsItem(p,cart[p.id]))});
+            trackEvent('add_payment_info',{currency:'EGP',payment_type:data.paymentMethod,items:items.filter(p=>cart[p.id]>0).map(p=>analyticsItem(p,cart[p.id]))});
             setDraft(data);
             setCartOpen(false);
             setAccount(!user);
@@ -507,6 +528,7 @@ export default function Store() {
       )}
       <a
         className="whatsapp-float"
+        onClick={()=>trackEvent('contact_whatsapp')}
         href="https://wa.me/201148141496?text=Hello%20Neo%20Coffee%2C%20I%20need%20support."
         target="_blank"
         rel="noreferrer"

@@ -1,5 +1,7 @@
 import type{Metadata}from'next';
 import { publicSiteUrl } from '../../lib/site-url';
+import { env } from 'cloudflare:workers';
+import StoreAnalytics from '../../components/store-analytics';
 export function generateMetadata():Metadata{
  const origin=publicSiteUrl();
  return {
@@ -13,4 +15,7 @@ export function generateMetadata():Metadata{
  alternates:{canonical:'/store'},
 };
 }
-export default function StoreLayout({children}:{children:React.ReactNode}){return children}
+export default function StoreLayout({children}:{children:React.ReactNode}){
+ const measurementId=(env as unknown as {GA_MEASUREMENT_ID?:string}).GA_MEASUREMENT_ID||'';
+ return <>{children}<StoreAnalytics measurementId={measurementId}/></>;
+}

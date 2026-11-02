@@ -10,6 +10,7 @@ import {
 import StoreProductGallery from "../../../../components/store-product-gallery";
 import { setupCategories } from "../../../../lib/categories";
 import { publicSiteUrl } from "../../../../lib/site-url";
+import ProductAnalytics from "../../../../components/product-analytics";
 type Product = {
   id: number;
   code: string;
@@ -109,6 +110,7 @@ export default async function ProductPage({
     };
   return (
     <main className="seo-product" dir="ltr">
+      <ProductAnalytics item={{item_id:String(p.id),item_name:p.name_ar,price:effectivePrice(p),quantity:1}} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

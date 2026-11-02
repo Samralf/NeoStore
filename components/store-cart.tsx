@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { MAX_PRODUCT_QUANTITY } from "../lib/store-cart";
+import { ANALYTICS_READY, trackEvent } from "../lib/analytics";
 type Product = {
   id: number;
   brand: string;
@@ -51,6 +52,16 @@ export default function StoreCart({
     phone: string;
   }) => void;
 }) {
+  const initialAnalyticsCart=useRef(products.filter(p=>cart[p.id]>0).map(p=>({item_id:String(p.id),item_name:p.name,price:p.price,quantity:cart[p.id]})));
+  useEffect(()=>{
+    let sent=false;
+    const send=()=>{
+      if(sent||!window.neoAnalyticsId) return;
+      trackEvent('view_cart',{currency:'EGP',value:initialAnalyticsCart.current.reduce((sum,p)=>sum+p.price*p.quantity,0),items:initialAnalyticsCart.current});sent=true;
+    };
+    send();window.addEventListener(ANALYTICS_READY,send);
+    return ()=>window.removeEventListener(ANALYTICS_READY,send);
+  },[]);
   const [govs, setGovs] = useState<Gov[]>([]),
     [gov, setGov] = useState(""),
     [methods, setMethods] = useState<Method[]>([]),

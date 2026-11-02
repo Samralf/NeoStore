@@ -5815,6 +5815,15 @@ button {
 .store-information p { line-height: 1.8; margin-bottom: .75rem; }
 .store-information a { text-decoration: underline; text-underline-offset: .2em; }
 .qty button:disabled { opacity: .4; cursor: not-allowed; }
+.analytics-consent { position:fixed; inset:auto 16px 16px; z-index:100; max-width:760px; margin-inline:auto; padding:20px; border:1px solid #bfdbfe; border-radius:14px; background:#fff; color:#123f70; box-shadow:0 12px 48px #123f7033; display:grid; gap:14px; max-height:80dvh; overflow:auto; }
+.analytics-consent p { font-size:14px; line-height:1.65; margin:8px 0; }
+.analytics-consent a { text-decoration:underline; }
+.analytics-consent-actions { display:flex; gap:12px; flex-wrap:wrap; }
+.analytics-consent-actions button { flex:1; min-height:44px; padding:10px 18px; border:1px solid #1556a3; border-radius:8px; background:#fff; color:#1556a3; font-weight:700; }
+.analytics-consent-actions button:last-child { background:#1556a3; color:#fff; }
+.analytics-settings { display:block; margin:18px auto 150px; padding:10px 16px; min-height:44px; border:1px solid #bfdbfe; border-radius:8px; color:#1556a3; background:#fff; }
+.analytics-privacy { padding-top:32px; line-height:1.8; }
+.analytics-privacy section { margin-block:32px; }
 
 /* Keep the storefront usable on narrow screens in both writing directions. */
 .commerce :is(button, a, input, select, textarea):focus-visible {
