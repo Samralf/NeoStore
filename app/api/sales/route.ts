@@ -107,8 +107,8 @@ export async function POST(r: Request) {
          BEGIN SELECT RAISE(ABORT,'Insufficient batch stock'); END`,
       ),
     ],
-    saved = await env.DB.prepare(
-      `INSERT INTO orders(order_number,guest_name,verified_phone,governorate_name,delivery_address,payment_method,payment_status,source,status,subtotal,discount,total,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`,
+    header = env.DB.prepare(
+      `INSERT INTO orders(order_number,guest_name,verified_phone,governorate_name,delivery_address,payment_method,payment_status,source,status,subtotal,discount,total,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
       .bind(
         number,
@@ -125,19 +125,16 @@ export async function POST(r: Request) {
         total,
         now,
         now,
-      )
-      .first<{ id: number }>();
-  if (!saved)
-    return Response.json({ error: "تعذر حفظ الفاتورة" }, { status: 500 });
+      );
   await env.DB.batch(stockGuards);
-  const statements: ReturnType<typeof env.DB.prepare>[] = [];
+  const statements: ReturnType<typeof env.DB.prepare>[] = [header];
   for (const line of lines) {
     const p = products.find((v) => v.id === line.id)!;
     statements.push(
       env.DB.prepare(
-        "INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price,unit_cost) VALUES(?,?,?,?,?,?)",
+        "INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price,unit_cost) VALUES((SELECT id FROM orders WHERE order_number=?),?,?,?,?,?)",
       ).bind(
-        saved.id,
+        number,
         p.id,
         p.name_ar,
         line.quantity,
@@ -168,7 +165,6 @@ export async function POST(r: Request) {
   try {
     await env.DB.batch(statements);
   } catch {
-    await env.DB.prepare("DELETE FROM orders WHERE id=?").bind(saved.id).run();
     return Response.json(
       { error: "تغير المخزون أثناء حفظ الفاتورة؛ راجع الكميات وحاول مرة أخرى" },
       { status: 409 },

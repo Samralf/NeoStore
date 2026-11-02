@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { MAX_PRODUCT_QUANTITY } from "../lib/store-cart";
 type Product = {
   id: number;
   brand: string;
@@ -144,15 +145,15 @@ export default function StoreCart({
                       −
                     </button>
                     <span>{cart[p.id]}</span>
-                    <button onClick={() => change(p.id, cart[p.id] + 1)}>
+                    <button disabled={cart[p.id] >= Math.min(p.available, MAX_PRODUCT_QUANTITY)} onClick={() => change(p.id, cart[p.id] + 1)}>
                       +
                     </button>
                   </div>
-                  {cart[p.id] >= p.available && (
+                  {cart[p.id] >= Math.min(p.available, MAX_PRODUCT_QUANTITY) && (
                     <small className="cart-stock-limit">
                       {tr(
-                        `Only ${p.available} available`,
-                        `المتاح لهذا الصنف ${p.available} فقط`,
+                        `Maximum ${Math.min(p.available, MAX_PRODUCT_QUANTITY)} per product`,
+                        `الحد الأقصى لهذا الصنف ${Math.min(p.available, MAX_PRODUCT_QUANTITY)}`,
                       )}
                     </small>
                   )}

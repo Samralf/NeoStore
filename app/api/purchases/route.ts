@@ -119,8 +119,8 @@ export async function POST(r: Request) {
     0,
   );
   try {
-    const p = await env.DB.prepare(
-      "INSERT INTO purchases(invoice_number,supplier_id,total,purchased_at,notes) VALUES(?,?,?,?,?) RETURNING id",
+    const header = env.DB.prepare(
+      "INSERT INTO purchases(invoice_number,supplier_id,total,purchased_at,notes) VALUES(?,?,?,?,?)",
     )
       .bind(
         b.invoiceNumber,
@@ -128,11 +128,8 @@ export async function POST(r: Request) {
         total,
         b.purchasedAt || now.slice(0, 10),
         b.notes || null,
-      )
-      .first<{ id: number }>();
-    if (!p)
-      return Response.json({ error: "تعذر حفظ الفاتورة" }, { status: 500 });
-    const statements: ReturnType<typeof env.DB.prepare>[] = [];
+      );
+    const statements: ReturnType<typeof env.DB.prepare>[] = [header];
     for (const x of lines) {
       const qty = Number(x.quantity),
         purchase = Number(x.purchasePrice || 0),
@@ -140,8 +137,8 @@ export async function POST(r: Request) {
         web = Number(x.websiteQuantity || 0);
       statements.push(
         env.DB.prepare(
-          "INSERT INTO purchase_items(purchase_id,product_id,quantity,unit_purchase_price,unit_operating_cost,website_quantity,batch_number,expiry_date) VALUES(?,?,?,?,?,?,?,?)",
-        ).bind(p.id, x.productId, qty, purchase, operating, Math.min(qty, Math.max(0, web)), x.batchNumber || null, x.expiryDate || null),
+          "INSERT INTO purchase_items(purchase_id,product_id,quantity,unit_purchase_price,unit_operating_cost,website_quantity,batch_number,expiry_date) VALUES((SELECT id FROM purchases WHERE invoice_number=?),?,?,?,?,?,?,?)",
+        ).bind(b.invoiceNumber, x.productId, qty, purchase, operating, Math.min(qty, Math.max(0, web)), x.batchNumber || null, x.expiryDate || null),
         env.DB.prepare(
           "UPDATE products SET stock_quantity=stock_quantity+?,website_quantity=website_quantity+?,purchase_price=?,operating_cost=?,updated_at=? WHERE id=?",
         ).bind(

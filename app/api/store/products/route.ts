@@ -18,6 +18,8 @@ export async function GET() {
       headers: { "cache-control": "public, max-age=30, s-maxage=30, stale-while-revalidate=60" },
     });
   } catch {
-    return Response.json([]);
+    return Response.json({ error: 'Products are temporarily unavailable. Please try again.' }, {
+      status: 503, headers: { 'cache-control': 'no-store' },
+    });
   }
 }

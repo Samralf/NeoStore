@@ -4,6 +4,7 @@ import Image from "next/image";
 import CustomerEntry from "../../components/customer-entry-v2";
 import CustomerProfile from "../../components/customer-profile";
 import StoreCart from "../../components/store-cart";
+import { cartQuantity, reconcileCart } from "../../lib/store-cart";
 
 type Lang = "en" | "ar";
 type Category = string;
@@ -91,6 +92,8 @@ export default function Store() {
     [cart, setCart] = useState<Record<number, number>>({}),
     [cartLoaded, setCartLoaded] = useState(false),
     [productsLoaded, setProductsLoaded] = useState(false),
+    [productsError, setProductsError] = useState(false),
+    [productsAttempt, setProductsAttempt] = useState(0),
     [open, setOpen] = useState(false),
     [cartOpen, setCartOpen] = useState(false),
     [account, setAccount] = useState(false),
@@ -135,10 +138,17 @@ export default function Store() {
     fetch("/api/store/account")
       .then((r) => r.json<{ user: StoreUser | null }>())
       .then((d) => setUser(d.user));
+  }, []);
+  useEffect(() => {
+    let active = true;
     fetch("/api/store/products")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Products unavailable");
+        return r.json();
+      })
       .then((rows) => {
-        if (Array.isArray(rows) && rows.length)
+        if (!Array.isArray(rows)) throw new Error("Invalid products response");
+        if (!active) return;
           setItems(
             (rows as StoreProductResponse[]).map((p, i) => ({
               id: p.id,
@@ -158,8 +168,13 @@ export default function Store() {
               image: p.image_url || null,
             })),
           );
+        setProductsLoaded(true);
+        setProductsError(false);
       })
-      .finally(() => setProductsLoaded(true));
+      .catch(() => { if (active) setProductsError(true); });
+    return () => { active = false; };
+  }, [productsAttempt]);
+  useEffect(() => {
     fetch("/api/categories?public=1")
       .then((response) => response.json())
       .then((data) => setCategories(Array.isArray(data) ? data : []));
@@ -167,15 +182,7 @@ export default function Store() {
   useEffect(() => {
     if (!cartLoaded || !productsLoaded) return;
     const timer = setTimeout(() => {
-      setCart((current) => {
-        const next: Record<number, number> = {};
-        Object.entries(current).forEach(([id, quantity]) => {
-          const product = items.find((item) => item.id === Number(id));
-          if (product?.available)
-            next[product.id] = Math.min(Number(quantity), product.available);
-        });
-        return next;
-      });
+      setCart((current) => reconcileCart(current, items, productsLoaded));
     }, 0);
     return () => clearTimeout(timer);
   }, [items, cartLoaded, productsLoaded]);
@@ -208,9 +215,9 @@ export default function Store() {
     setCart((c) => {
       const p = items.find((x) => x.id === id),
         next = { ...c },
-        max = p?.available ?? 50;
+        max = p?.available ?? 0;
       if (qty <= 0) delete next[id];
-      else next[id] = Math.min(qty, max);
+      else next[id] = cartQuantity(qty, max);
       return next;
     });
   }
@@ -335,6 +342,12 @@ export default function Store() {
             </div>
           </div>
           <div className="commercial-grid">
+            {productsError && <div role="alert" className="form-error">
+              <p>{rtl ? "تعذر تحميل المنتجات. سلتك محفوظة، حاول مرة أخرى." : "Could not load products. Your cart is saved. Please try again."}</p>
+              <button onClick={() => { setProductsError(false); setProductsAttempt(value => value + 1); }}>{rtl ? "إعادة المحاولة" : "Try again"}</button>
+            </div>}
+            {!productsLoaded && !productsError && <p role="status">{rtl ? "جاري تحميل المنتجات…" : "Loading products…"}</p>}
+            {productsLoaded && !productsError && !shown.length && <p>{rtl ? "لا توجد منتجات متاحة في هذا القسم حاليًا." : "No products are currently available in this category."}</p>}
             {shown.map((p) => (
               <article key={p.id}>
                 {p.image ? (
@@ -424,7 +437,16 @@ export default function Store() {
           </div>
         </aside>
       </div>
-      {count > 0 && (
+      <section id="about" className="store-information">
+        <h2>{rtl ? "عن نيو كافي" : "About Neo Coffee"}</h2>
+        <p>{t.lead}</p>
+      </section>
+      <section id="contact" className="store-information">
+        <h2>{rtl ? "تواصل معنا" : "Contact us"}</h2>
+        <p>{rtl ? "تحتاج مساعدة في اختيار منتجاتك أو متابعة طلبك؟ تواصل معنا عبر واتساب." : "Need help choosing products or following up on an order? Contact us on WhatsApp."}</p>
+        <a href="https://wa.me/201148141496" target="_blank" rel="noreferrer">{rtl ? "تواصل عبر واتساب" : "Chat on WhatsApp"}</a>
+      </section>
+      {count > 0 && productsLoaded && (
         <button className="cart-confirm-bar" onClick={() => setCartOpen(true)}>
           <i>✓</i>
           <span>

@@ -12,6 +12,13 @@ export async function setupOrders(){ordersSchemaReady??=(async()=>{await env.DB.
  env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status,created_at DESC)')
  ]);
  const orderColumns=await env.DB.prepare('PRAGMA table_info(orders)').all<{name:string}>();
+ if(!orderColumns.results.some(column=>column.name==='mutation_token')){
+  try { await env.DB.prepare("ALTER TABLE orders ADD COLUMN mutation_token TEXT NOT NULL DEFAULT ''").run(); }
+  catch(error) {
+   const current=await env.DB.prepare('PRAGMA table_info(orders)').all<{name:string}>();
+   if(!current.results.some(column=>column.name==='mutation_token'))throw error;
+  }
+ }
  if(!orderColumns.results.some(column=>column.name==='governorate_name')){
   await env.DB.prepare("ALTER TABLE orders ADD COLUMN governorate_name TEXT NOT NULL DEFAULT ''").run();
  }
