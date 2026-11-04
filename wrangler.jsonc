@@ -5,7 +5,8 @@
   "compatibility_date": "2026-05-15",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "PUBLIC_SITE_URL": "https://neocoffeestore.com"
+    "PUBLIC_SITE_URL": "https://neocoffeestore.com",
+    "GA_MEASUREMENT_ID": "G-GKKJ5PNVZD"
   },
   "assets": { "directory": "dist/client" },
   "routes": [

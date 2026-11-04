@@ -2,7 +2,7 @@
 
 ## Current implementation status
 
-The storefront integration is prepared. It is inactive unless the deployed Worker has a valid `GA_MEASUREMENT_ID` for the owner's GA4 web stream. Account/property creation, stream configuration and live data receipt must be verified separately; code installation alone does not establish them.
+Activated in the deployed Worker on 2026-11-04 with `G-GKKJ5PNVZD`. Account `414514597`, property `562092270` (Neo Coffee Store), stream `16262514195` (Neo Store). Enhanced Measurement is disabled; event and user retention are saved at 14 months. The live storefront returns the correct ID. Realtime data receipt, property timezone/currency and key-event configuration still need verification; deployment alone does not establish data receipt. Tracking requires visitor consent.
 
 ## Account setup checklist (requires the owner's Analytics account)
 

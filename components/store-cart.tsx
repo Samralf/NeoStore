@@ -14,7 +14,7 @@ type Product = {
   image: string | null;
   available: number;
 };
-type Gov = { nameEn: string; nameAr: string; price: number };
+type Gov = { nameEn: string; nameAr: string; price: number; originalPrice: number };
 type Method = {
   id: string;
   nameEn: string;
@@ -43,6 +43,7 @@ export default function StoreCart({
     phone?: string | null;
     governorate?: string | null;
     address?: string | null;
+    google_authenticated?: number;
   } | null;
   checkout: (d: {
     governorate: string;
@@ -103,6 +104,8 @@ export default function StoreCart({
     ),
     selected = govs.find((g) => g.nameEn === gov),
     shipping = selected?.price || 0,
+    originalShipping = selected?.originalPrice ?? shipping,
+    shippingDiscount = Math.max(0, originalShipping - shipping),
     total = subtotal + shipping;
   return (
     <div className="checkout-bg">
@@ -125,7 +128,7 @@ export default function StoreCart({
           <b />
           <span>
             <i>3</i>
-            {tr("OTP & confirm", "التأكيد")}
+            {tr("Confirm order", "تأكيد الطلب")}
           </span>
         </div>
         {!lines.length ? (
@@ -324,12 +327,16 @@ export default function StoreCart({
                 <span>{tr("Shipping", "الشحن")}</span>
                 <b>
                   {selected
-                    ? shipping
-                      ? `${shipping} EGP`
+                    ? originalShipping
+                      ? `${originalShipping.toLocaleString()} EGP`
                       : tr("FREE", "مجاني")
                     : "—"}
                 </b>
               </div>
+              {free && selected && <div className="shipping-discount">
+                <span>{tr("Free shipping discount", "خصم عرض الشحن المجاني")}</span>
+                <b dir="ltr">−{shippingDiscount.toLocaleString()} EGP</b>
+              </div>}
               <div className="grand-total">
                 <span>{tr("Total to pay", "الإجمالي المطلوب")}</span>
                 <b>{total.toLocaleString()} EGP</b>
@@ -338,7 +345,7 @@ export default function StoreCart({
             <div className="checkout-review-note">
               <b>✓ {tr("Order review complete", "مراجعة الطلب")}</b>
               <small>
-                {tr(
+                {customer?.google_authenticated ? tr("Signed in with Google — no OTP required.", "مسجّل بحساب Google — لا تحتاج كود OTP.") : tr(
                   "OTP verification is required before final confirmation.",
                   "يلزم تأكيد الهاتف قبل تسجيل الطلب النهائي.",
                 )}
@@ -359,7 +366,7 @@ export default function StoreCart({
                 })
               }
             >
-              {payment === "cash"
+              {customer?.google_authenticated ? tr("Place order", "تسجيل الطلب") : payment === "cash"
                 ? tr("Verify phone & place order", "تأكيد الهاتف وتسجيل الطلب")
                 : tr(
                     "Continue to payment verification",

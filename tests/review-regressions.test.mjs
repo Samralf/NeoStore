@@ -131,9 +131,35 @@ test('cart preserves saved items before a successful load and caps quantity at 5
   assert.equal(cartQuantity(5,2),2);
   assert.deepEqual(reconcileCart({1:80},[{id:1,available:100}],true),{1:50});
 });
+test('Google checkout skips OTP and preserves the free-shipping amount; guests still need OTP',async()=>{
+  const {setupOtp}=await import('../lib/otp.ts');
+  const {setupGoogleAuth}=await import('../lib/google-auth.ts');
+  const {shippingConfig}=await import('../lib/shipping.ts');
+  await setupOtp(); await setupGoogleAuth(); await shippingConfig();
+  sqlite.exec("INSERT INTO customers(id,name,phone,email,created_at) VALUES(900,'Google customer','','test@example.com','now')");
+  sqlite.exec("INSERT INTO google_accounts VALUES('test-subject',900,'test@example.com','Google customer','now','now')");
+  sqlite.prepare("INSERT OR REPLACE INTO settings VALUES('shipping_config',?,'now')").run(JSON.stringify({freeShipping:true,prices:{Cairo:65},enabled:{Cairo:true}}));
+  const storeOrders=await import('../app/api/store/orders/route.ts');
+  const body={name:'Recipient',phone:'01000000000',governorate:'Cairo',address:'Delivery address',paymentMethod:'cash',items:[{id:1,quantity:1}]};
+  const submit=async(cookie)=>storeOrders.POST(new Request('https://local/api/store/orders',{method:'POST',headers:{'content-type':'application/json',cookie},body:JSON.stringify(body)}));
+  assert.equal((await submit('')).status,401);
+  assert.equal((await submit('neo_customer=900.forged.invalid')).status,401);
+  const response=await submit(`neo_customer=${await customerCookie(900)}`);
+  assert.equal(response.status,200);
+  const result=await response.json();
+  const order=sqlite.prepare('SELECT * FROM orders WHERE order_number=?').get(result.orderNumber);
+  assert.equal(order.customer_id,900);
+  assert.equal(order.original_shipping,65);
+  assert.equal(order.charged_shipping,0);
+  assert.equal(order.total,order.subtotal);
+  const shipping=await import('../app/api/store/shipping/route.ts');
+  const quote=await (await shipping.GET()).json();
+  assert.deepEqual(quote.governorates[0],{nameEn:'Cairo',nameAr:'القاهرة',price:0,originalPrice:65});
+});
+
 test('catalog failures return an uncacheable error rather than an empty successful catalog',async()=>{
   const catalog=await import('../app/api/store/products/route.ts');
-  failPattern='PRAGMA table_info(products)';
+  failPattern='FROM products';
   const response=await catalog.GET();
   failPattern=null;
   assert.equal(response.status,503);

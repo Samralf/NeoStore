@@ -70,7 +70,7 @@ export async function POST(r: Request) {
       paymentMethod?: string;
       items?: Line[];
     }>(),
-    phone=verified||(google?normalizePhone(b.phone||customerRow?.phone||""):null),
+    phone=google?normalizePhone(b.phone||customerRow?.phone||""):verified,
     rawLines = (b.items || []).filter(
       (x) =>
         Number.isInteger(x.id) &&
