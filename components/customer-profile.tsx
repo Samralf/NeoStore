@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
+import CustomerPasswordSettings from './customer-password-settings';
 type User = {
   id: number;
   name: string;
@@ -169,6 +170,7 @@ export default function CustomerProfile({
                 <em>›</em>
               </button>
             </div>
+            <CustomerPasswordSettings arabic={arabic}/>
             <button className="logout-button" onClick={onLogout}>
               {tr("Sign out", "تسجيل الخروج")}
             </button>

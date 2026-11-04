@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { registerHooks } from 'node:module';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 // Exercise the actual route code against SQLite with D1's atomic batch contract.
@@ -45,6 +45,10 @@ CREATE TABLE inventory_batches(id INTEGER PRIMARY KEY,product_id INTEGER,batch_n
 INSERT INTO products(id,code,name_ar,stock_quantity,reserved_quantity,website_quantity) VALUES(1,'P1','Coffee',20,4,16);
 INSERT INTO inventory_batches(id,product_id,remaining_quantity) VALUES(1,1,20);
 `);
+const {setupOtp}=await import('../lib/otp.ts');
+await setupOtp();
+sqlite.exec("CREATE TABLE governorates(id INTEGER PRIMARY KEY); INSERT INTO customers(id,name,phone,created_at) VALUES(42,'Owner','01000000000','now'),(43,'Other','01111111111','now');");
+sqlite.exec(readFileSync(new URL('./fixtures/production-orders.sql',import.meta.url),'utf8'));
 const {setupOrders} = await import('../lib/orders.ts');
 await setupOrders();
 const orders = await import('../app/api/orders/route.ts');
@@ -55,7 +59,7 @@ const {customerCookie,verifiedPhoneCookie} = await import('../lib/customer-sessi
 const {cartQuantity,reconcileCart} = await import('../lib/store-cart.ts');
 const request=(method,body)=>new Request('https://local/api/test',{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)});
 function seedOrder(id,status='shipped',customer=null) {
-  sqlite.prepare(`INSERT INTO orders(id,order_number,customer_id,verified_phone,delivery_address,payment_method,status,subtotal,total,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+  sqlite.prepare(`INSERT INTO orders(id,order_number,customer_id,verified_phone,delivery_address,payment_method,status,subtotal,total,created_at,updated_at,source) VALUES(?,?,?,?,?,?,?,?,?,?,?,'website')`)
     .run(id,`NC-${id}`,customer,'01000000000','Cairo','instapay',status,200,200,'now','now');
   sqlite.prepare('INSERT INTO order_items(order_id,product_id,product_name,quantity,unit_price) VALUES(?,1,?,2,100)').run(id,'Coffee');
 }
@@ -147,7 +151,9 @@ test('Google checkout skips OTP and preserves the free-shipping amount; guests s
   const response=await submit(`neo_customer=${await customerCookie(900)}`);
   assert.equal(response.status,200);
   const result=await response.json();
+  assert.match(result.orderNumber,/^NC-\d{6}-[A-F0-9]{6}$/);
   const order=sqlite.prepare('SELECT * FROM orders WHERE order_number=?').get(result.orderNumber);
+  assert.equal(order.source,'website');
   assert.equal(order.customer_id,900);
   assert.equal(order.original_shipping,65);
   assert.equal(order.charged_shipping,0);
@@ -155,6 +161,49 @@ test('Google checkout skips OTP and preserves the free-shipping amount; guests s
   const shipping=await import('../app/api/store/shipping/route.ts');
   const quote=await (await shipping.GET()).json();
   assert.deepEqual(quote.governorates[0],{nameEn:'Cairo',nameAr:'القاهرة',price:0,originalPrice:65});
+  sqlite.exec("INSERT INTO customers(id,name,phone,email,created_at) VALUES(901,'Existing customer','+201111111111','','now')");
+  const existing=await submit(`neo_customer=${await customerCookie(901)}`);
+  assert.equal(existing.status,200,'existing signed-in customers do not need another OTP');
+  assert.equal(sqlite.prepare('SELECT phone FROM customers WHERE id=901').get().phone,'+201111111111','delivery contact does not overwrite the account login number');
+  assert.equal((await submit(`neo_customer=${await customerCookie(999999)}`)).status,401,'a removed customer has no checkout access');
+});
+
+test('password login works by email and verified mobile, protects changes, and limits attempts',async()=>{
+  const auth=await import('../app/api/store/auth/password/route.ts');
+  sqlite.exec("INSERT INTO customer_accounts(customer_id,phone,phone_verified_at,created_at) VALUES(901,'+201111111111','now','now')");
+  const cookie=`neo_customer=${await customerCookie(901)}`;
+  const call=(method,body,session='',origin='https://local')=>new Request('https://local/api/store/auth/password',{method,headers:{'content-type':'application/json',cookie:session,origin,'cf-connecting-ip':'192.0.2.9'},body:JSON.stringify(body)});
+  const password='Example test password 2026!';
+  assert.equal((await auth.PUT(call('PUT',{email:'person@example.com',password}))).status,401);
+  assert.equal((await auth.PUT(call('PUT',{email:'person@example.com',password:'short'},cookie))).status,400);
+  assert.equal((await auth.PUT(call('PUT',{email:'Person@Example.com',password},cookie))).status,200);
+  const stored=sqlite.prepare('SELECT * FROM customer_passwords WHERE customer_id=901').get();
+  assert.notEqual(stored.password_hash,password);
+  assert.equal(stored.login_email,'person@example.com');
+  assert.equal((await auth.POST(call('POST',{identifier:'person@example.com',password:'wrong'}))).status,401);
+  for(const identifier of ['PERSON@example.com','01111111111']) {
+    const response=await auth.POST(call('POST',{identifier,password}));
+    assert.equal(response.status,200);
+    assert.match(response.headers.get('set-cookie'),/neo_customer=.*HttpOnly/);
+    const data=await response.json();assert.equal(data.user.id,901);assert.equal(data.password_hash,undefined);
+  }
+  assert.equal((await auth.PUT(call('PUT',{email:'person@example.com',password:'Changed password 2026!'},cookie))).status,403);
+  assert.equal((await auth.POST(call('POST',{identifier:'person@example.com',password},'', 'https://evil.example'))).status,403);
+  assert.equal((await auth.PUT(call('PUT',{email:'person@example.com',password},`neo_customer=${await customerCookie(900)}`))).status,409);
+  for(let i=0;i<10;i++) assert.equal((await auth.POST(call('POST',{identifier:'unknown@example.com',password:'wrong'}))).status,401);
+  assert.equal((await auth.POST(call('POST',{identifier:'unknown@example.com',password:'wrong'}))).status,429);
+});
+
+test('Google callback does not link accounts by a user-editable email',async()=>{
+  const callback=await import('../app/api/store/auth/google/callback/route.ts');
+  const originalFetch=globalThis.fetch;
+  globalThis.fetch=async(url)=>Response.json(String(url).includes('/token')?{access_token:'test-token'}:{sub:'new-google-sub',email:'person@example.com',email_verified:true,name:'Google owner'});
+  try {
+    const response=await callback.GET(new Request('https://local/api/store/auth/google/callback?state=test-state&code=test-code',{headers:{cookie:'neo_google_state=test-state'}}));
+    assert.equal(response.status,302);
+    const linked=sqlite.prepare('SELECT customer_id FROM google_accounts WHERE google_sub=?').get('new-google-sub');
+    assert.ok(linked);assert.notEqual(linked.customer_id,901);
+  }finally{globalThis.fetch=originalFetch;}
 });
 
 test('catalog failures return an uncacheable error rather than an empty successful catalog',async()=>{

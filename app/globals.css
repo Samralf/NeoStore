@@ -1,4 +1,10 @@
 @import "tailwindcss";
+.password-settings { margin: 22px 0; padding: 18px; border: 1px solid #dbe6f5; border-radius: 14px; background: #f7faff; text-align: start; }
+.password-settings h3 { color: #16457d; font-size: 18px; margin: 0 0 10px; }
+.password-settings p { font-size: 14px; line-height: 1.6; }
+.password-settings .profile-form label, .signup-methods .profile-form label { font-size: 14px; }
+.password-settings input, .signup-methods .profile-form input { width: 100%; min-width: 0; font-size: 16px; }
+.password-settings input:focus, .signup-methods .profile-form input:focus { outline: 2px solid #2563eb; outline-offset: 2px; }
 .profile-form {
   display: grid;
   gap: 13px;

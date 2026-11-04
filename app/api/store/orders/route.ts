@@ -8,7 +8,6 @@ import {
   setupSpecialPrice,
 } from "../../../../lib/product-pricing";
 import { setupCategories } from "../../../../lib/categories";
-import { setupGoogleAuth } from "../../../../lib/google-auth";
 import { normalizePhone } from "../../../../lib/otp";
 type Line = { id: number; quantity: number };
 type Product = {
@@ -54,15 +53,14 @@ export async function POST(r: Request) {
   await setupOrders();
   await setupSpecialPrice();
   await setupCategories();
-  await setupGoogleAuth();
-  const customer = await customerId(r), verified = await verifiedPhone(r), google = customer ? await env.DB.prepare("SELECT 1 ok FROM google_accounts WHERE customer_id=?").bind(customer).first() : null;
-  if (!verified && !google)
+  const customer = await customerId(r), verified = await verifiedPhone(r);
+  const customerRow=customer?await env.DB.prepare("SELECT phone,email FROM customers WHERE id=?").bind(customer).first<{phone:string;email:string}>():null;
+  if (!verified && !customerRow)
     return Response.json(
       { error: "OTP verification is required for this order" },
       { status: 401 },
     );
-  const customerRow=customer?await env.DB.prepare("SELECT phone,email FROM customers WHERE id=?").bind(customer).first<{phone:string;email:string}>():null,
-    b = await r.json<{
+  const b = await r.json<{
       name?: string;
       phone?: string;
       governorate?: string;
@@ -70,7 +68,7 @@ export async function POST(r: Request) {
       paymentMethod?: string;
       items?: Line[];
     }>(),
-    phone=google?normalizePhone(b.phone||customerRow?.phone||""):verified,
+    phone=customerRow?normalizePhone(b.phone||customerRow.phone||""):verified,
     rawLines = (b.items || []).filter(
       (x) =>
         Number.isInteger(x.id) &&
@@ -86,7 +84,6 @@ export async function POST(r: Request) {
       ([id, quantity]) => ({ id, quantity }),
     );
   if(!phone)return Response.json({error:"Enter a valid Egyptian mobile number for delivery"},{status:400});
-  if(google&&customer&&phone!==customerRow?.phone)await env.DB.prepare("UPDATE customers SET phone=? WHERE id=?").bind(phone,customer).run();
   if (!lines.length)
     return Response.json({ error: "Cart is empty" }, { status: 400 });
   if (lines.some((line) => line.quantity > 50))
@@ -163,7 +160,7 @@ export async function POST(r: Request) {
   ).run();
   const statements = [
     env.DB.prepare(
-      `INSERT INTO orders(order_number,customer_id,guest_name,verified_phone,governorate_name,delivery_address,payment_method,status,subtotal,original_shipping,charged_shipping,free_shipping,total,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO orders(order_number,customer_id,guest_name,verified_phone,governorate_name,delivery_address,payment_method,status,subtotal,original_shipping,charged_shipping,free_shipping,total,created_at,updated_at,source) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'website')`,
     ).bind(
       number,
       customer,
@@ -202,10 +199,12 @@ export async function POST(r: Request) {
   ];
   try {
     await env.DB.batch(statements);
-  } catch {
+  } catch (error) {
+    const stockChanged=error instanceof Error && /Insufficient stock/i.test(error.message);
+    console.error('Store order save failed', {orderNumber:number,reason:stockChanged?'stock_conflict':'database_write_failed'});
     return Response.json(
-      { error: "Stock changed while placing the order. Review your cart." },
-      { status: 409 },
+      { error: stockChanged ? "Stock changed while placing the order. Review your cart." : "Could not save your order. Please try again or contact support." },
+      { status: stockChanged ? 409 : 500 },
     );
   }
   return Response.json({

@@ -345,7 +345,7 @@ export default function StoreCart({
             <div className="checkout-review-note">
               <b>✓ {tr("Order review complete", "مراجعة الطلب")}</b>
               <small>
-                {customer?.google_authenticated ? tr("Signed in with Google — no OTP required.", "مسجّل بحساب Google — لا تحتاج كود OTP.") : tr(
+                {customer ? tr("You are signed in — no OTP required.", "أنت مسجّل الدخول — لا تحتاج كود OTP.") : tr(
                   "OTP verification is required before final confirmation.",
                   "يلزم تأكيد الهاتف قبل تسجيل الطلب النهائي.",
                 )}
@@ -366,7 +366,7 @@ export default function StoreCart({
                 })
               }
             >
-              {customer?.google_authenticated ? tr("Place order", "تسجيل الطلب") : payment === "cash"
+              {customer ? tr("Place order", "تسجيل الطلب") : payment === "cash"
                 ? tr("Verify phone & place order", "تأكيد الهاتف وتسجيل الطلب")
                 : tr(
                     "Continue to payment verification",

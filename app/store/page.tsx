@@ -513,7 +513,7 @@ export default function Store() {
           intent={account ? "signin" : "guest"}
           close={() => setOpen(false)}
           onLogin={setUser}
-          googleAuthenticated={Boolean(user?.google_authenticated)}
+          authenticated={Boolean(user)}
           onVerified={draft ? createOrder : undefined}
         />
       )}{" "}
