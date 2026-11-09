@@ -4,7 +4,7 @@ import * as analytics from '../lib/analytics.ts';
 const storage=new Map(),scripts=[];
 globalThis.localStorage={getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)};
 globalThis.window={};
-globalThis.location={href:'https://neocoffeestore.com/store?email=private@example.com#token',origin:'https://neocoffeestore.com',hostname:'neocoffeestore.com'};
+globalThis.location={href:'https://neocoffeestore.com/?email=private@example.com#token',origin:'https://neocoffeestore.com',hostname:'neocoffeestore.com'};
 globalThis.document={title:'Neo Coffee Store',referrer:'https://search.example/find?email=private@example.com',cookie:'',createElement:()=>({}),head:{appendChild:script=>scripts.push(script)}};
 test('only valid GA4 measurement identifiers are accepted',()=>{
   assert.equal(analytics.validMeasurementId('G-ABC1234567'),true);
@@ -12,8 +12,8 @@ test('only valid GA4 measurement identifiers are accepted',()=>{
   assert.equal(analytics.validMeasurementId(''),false);
 });
 test('page URLs and referrers never contain query strings or fragments',()=>{
-  assert.equal(analytics.safePageLocation(location.href),'https://neocoffeestore.com/store');
-  assert.equal(analytics.safePageLocation('https://neocoffeestore.com/store/product/5?phone=123'),'https://neocoffeestore.com/store/product/5');
+  assert.equal(analytics.safePageLocation(location.href),'https://neocoffeestore.com/');
+  assert.equal(analytics.safePageLocation('https://neocoffeestore.com/product/5?phone=123'),'https://neocoffeestore.com/product/5');
   assert.equal(analytics.safeReferrer(document.referrer,location.origin),'https://search.example/');
 });
 test('no Google script or events before consent; initialization occurs once',()=>{
@@ -30,7 +30,7 @@ test('no Google script or events before consent; initialization occurs once',()=
 test('manual pageviews are deduplicated and include only sanitized URLs',()=>{
   analytics.trackPage();analytics.trackPage();
   const events=window.dataLayer.map(args=>Array.from(args)).filter(c=>c[1]==='page_view');
-  assert.equal(events.length,1);assert.equal(events[0][2].page_location,'https://neocoffeestore.com/store');
+  assert.equal(events.length,1);assert.equal(events[0][2].page_location,'https://neocoffeestore.com/');
 });
 test('event allowlist excludes unexpected customer fields',()=>{
   analytics.trackEvent('order_placed',{value:100,currency:'EGP',email:'private@example.com',phone:'01000000000',items:[{item_id:'1',item_name:'Coffee',price:100,quantity:1,address:'private address'}]});

@@ -201,6 +201,7 @@ test('Google callback does not link accounts by a user-editable email',async()=>
   try {
     const response=await callback.GET(new Request('https://local/api/store/auth/google/callback?state=test-state&code=test-code',{headers:{cookie:'neo_google_state=test-state'}}));
     assert.equal(response.status,302);
+    assert.equal(response.headers.get('location'),'https://local/');
     const linked=sqlite.prepare('SELECT customer_id FROM google_accounts WHERE google_sub=?').get('new-google-sub');
     assert.ok(linked);assert.notEqual(linked.customer_id,901);
   }finally{globalThis.fetch=originalFetch;}

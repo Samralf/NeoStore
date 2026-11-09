@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Neo Coffee",
     description:
       "Original coffee brands, machines, grinders and brewing tools delivered across Egypt.",
-    start_url: "/store",
+    start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#15549a",

@@ -19,7 +19,7 @@ export function readAnalyticsChoice(): AnalyticsChoice | null {
 }
 export function safePageLocation(raw: string) {
   const url=new URL(raw);
-  const path=/^\/store(?:\/product\/\d+|\/privacy)?\/?$/.test(url.pathname)?url.pathname:'/store';
+  const path=/^\/(?:product\/\d+|privacy)?\/?$/.test(url.pathname)?url.pathname:'/';
   return url.origin+path;
 }
 export function safeReferrer(raw: string, origin: string) {

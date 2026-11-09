@@ -18,6 +18,8 @@ Activated in the deployed Worker on 2026-11-04 with `G-GKKJ5PNVZD`. Account `414
 
 ## What is collected
 
+The public storefront now lives at `/`, with `/product/:id` and `/privacy`. Administration lives at `/store` and does not include the analytics component. The existing GA4 stream ID remains the same.
+
 | Event / metric | Meaning |
 | --- | --- |
 | page_view | Store, product and privacy page views; URL query strings and fragments are removed |

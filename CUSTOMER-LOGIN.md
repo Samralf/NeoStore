@@ -1,5 +1,7 @@
 # Customer login and checkout
 
+Public storefront: `/`. Administration: `/store` (admin authentication required, noindex). Product and privacy pages use `/product/:id` and `/privacy`; their previous `/store/...` paths permanently redirect. API paths and the Google OAuth callback remain unchanged. Successful Google sign-in returns to `/`.
+
 - Google sign-in or email/verified mobile plus password are available in Sign in.
 - Existing customers first sign in using their existing Google/mobile method, then set a password in the profile. New mobile accounts verify once before setting a password. Passwords must be 12–128 characters.
 - Login email is stored separately from the editable profile/contact email. Mobile login uses the verified number in customer_accounts, never a delivery contact number. Google identities are matched by Google subject, not by an editable email.

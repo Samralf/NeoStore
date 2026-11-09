@@ -28,7 +28,7 @@ export default function StoreAnalytics({measurementId}:{measurementId:string}) {
       <div><strong>إحصائيات الزيارات / Visitor analytics</strong>
         <p dir="rtl">نستخدم Google Analytics لقياس الصفحات والزيارات ووقت التفاعل والبلد. يمكنك الرفض والاستمرار في التسوق.</p>
         <p>Allow optional analytics to help us improve the store. You can decline and keep shopping.</p>
-        <a href="/store/privacy">الخصوصية / Privacy</a>
+        <a href="/privacy">الخصوصية / Privacy</a>
       </div>
       <div className="analytics-consent-actions">
         <button onClick={()=>choose('denied')}>رفض / Decline</button>

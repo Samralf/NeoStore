@@ -18,13 +18,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ).all<{ id: number; updated_at: string }>();
   return [
     {
-      url: `${origin}/store`,
+      url: `${origin}/`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 1,
     },
     ...products.results.map((product) => ({
-      url: `${origin}/store/product/${product.id}`,
+      url: `${origin}/product/${product.id}`,
       lastModified: new Date(product.updated_at),
       changeFrequency: "weekly" as const,
       priority: 0.8,

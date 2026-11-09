@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AuthGate from "./auth-gate";
-import ProductManager from "../components/product-manager";
-import AccountSettings from "../components/account-settings";
-import CustomerManager from "../components/customer-manager";
-import ShippingManager from "../components/shipping-manager";
-import OrderManager from "../components/order-manager";
-import ReportManager from "../components/report-manager";
-import PurchaseManager from "../components/purchase-manager";
-import PaymentSettings from "../components/payment-settings";
-import SalesManager from "../components/sales-manager";
-import DashboardManager from "../components/dashboard-manager";
-import GlobalSearch, { type SearchResult } from "../components/global-search";
-import SmsGatewayManager from "../components/sms-gateway-manager";
-import SmsReport from "../components/sms-report";
+import AuthGate from "../app/auth-gate";
+import ProductManager from "./product-manager";
+import AccountSettings from "./account-settings";
+import CustomerManager from "./customer-manager";
+import ShippingManager from "./shipping-manager";
+import OrderManager from "./order-manager";
+import ReportManager from "./report-manager";
+import PurchaseManager from "./purchase-manager";
+import PaymentSettings from "./payment-settings";
+import SalesManager from "./sales-manager";
+import DashboardManager from "./dashboard-manager";
+import GlobalSearch, { type SearchResult } from "./global-search";
+import SmsGatewayManager from "./sms-gateway-manager";
+import SmsReport from "./sms-report";
 
 type View =
   | "الرئيسية"
