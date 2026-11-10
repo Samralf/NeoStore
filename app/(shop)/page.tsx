@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import StorefrontHome from "../../components/storefront-home";
 import CustomerEntry from "../../components/customer-entry-v2";
 import CustomerProfile from "../../components/customer-profile";
 import StoreCart from "../../components/store-cart";
@@ -35,62 +35,10 @@ type CreateOrderResponse = { orderNumber: string; paymentMethod: string; total: 
 function analyticsItem(p: StoreItem, quantity: number): AnalyticsItem {
   return {item_id:String(p.id),item_name:p.name,item_category:p.cat,price:p.price,quantity};
 }
-const copy = {
-  en: {
-    shop: "Shop",
-    about: "About",
-    contact: "Contact",
-    title: "Great coffee, made simple.",
-    lead: "Original coffee brands, coffee tools, machines, grinders, and filter coffee delivered across Egypt.",
-    cta: "Shop the collection",
-    brands: "Coffee Brands",
-    tools: "Coffee Tools",
-    machines: "Coffee Machines",
-    grinders: "Grinders",
-    filter: "Filter Coffee",
-    all: "All products",
-    add: "Add to cart",
-    cart: "Cart",
-    checkout: "Secure checkout",
-    guest: "Continue as guest",
-    account: "Create or use account",
-    phone: "Mobile number",
-    send: "Send OTP code",
-    note: "Phone verification is required for every order.",
-    free: "Free shipping offer",
-    fresh: "Authentic products",
-    delivery: "Delivery across Egypt",
-  },
-  ar: {
-    shop: "المتجر",
-    about: "عن نيو كافي",
-    contact: "تواصل معنا",
-    title: "قهوة رائعة، بكل بساطة.",
-    lead: "منتجات قهوة أصلية وماكينات ومطاحن وأدوات تحضير وقهوة تقطير، مع توصيل لكل محافظات مصر.",
-    cta: "تسوق المنتجات",
-    brands: "ماركات القهوة",
-    tools: "أدوات القهوة",
-    machines: "ماكينات القهوة",
-    grinders: "المطاحن",
-    filter: "قهوة التقطير",
-    all: "كل المنتجات",
-    add: "أضف للسلة",
-    cart: "السلة",
-    checkout: "إتمام الطلب بأمان",
-    guest: "الطلب كضيف",
-    account: "إنشاء أو استخدام حساب",
-    phone: "رقم الموبايل",
-    send: "إرسال كود OTP",
-    note: "تأكيد رقم الهاتف مطلوب لإتمام أي طلب.",
-    free: "عرض شحن مجاني",
-    fresh: "منتجات أصلية",
-    delivery: "توصيل لكل مصر",
-  },
-};
 export default function Store() {
   const processedProductLink = useRef(false);
   const [lang, setLang] = useState<Lang>("en"),
-    [cat, setCat] = useState<Category | "all">("all"),
+    [cat] = useState<Category | "all">("all"),
     [categories, setCategories] = useState<StoreCategory[]>([]),
     [items, setItems] = useState<StoreItem[]>([]),
     [cart, setCart] = useState<Record<number, number>>({}),
@@ -203,13 +151,7 @@ export default function Store() {
     }, 0);
     return () => clearTimeout(timer);
   }, [items]);
-  const t = copy[lang];
-  const categoryName = (slug: string) => {
-    const category = categories.find((item) => item.slug === slug);
-    return category ? (rtl ? category.name_ar : category.name_en) : slug;
-  };
-  const shown = cat === "all" ? items : items.filter((i) => i.cat === cat),
-    count = Object.values(cart).reduce((a, b) => a + b, 0);
+  const count = Object.values(cart).reduce((a, b) => a + b, 0);
   useEffect(()=>{
     if(!productsLoaded) return;
     const send=()=>trackEvent('view_item_list',{item_list_id:cat,items:items.filter(p=>cat==='all'||p.cat===cat).slice(0,200).map(p=>analyticsItem(p,1))});
@@ -265,206 +207,15 @@ export default function Store() {
     };
   }
   return (
-    <main className="commerce" dir={rtl ? "rtl" : "ltr"}>
-      <header className="commerce-head">
-        <a href="/" className="commerce-logo">
-          <i>N</i>
-          <span>
-            <b>NEO COFFEE</b>
-            <small>CURATED COFFEE STORE</small>
-          </span>
-        </a>
-        <nav>
-          <a href="#products">{t.shop}</a>
-          <a href="#about">{t.about}</a>
-          <a href="#contact">{t.contact}</a>
-        </nav>
-        <button
-          className="lang"
-          onClick={() => setLang(lang === "en" ? "ar" : "en")}
-        >
-          {lang === "en" ? "العربية" : "English"}
-        </button>
-        {user ? (
-          <button className="profile-button" onClick={() => setProfile(true)}>
-            <i>{user.name[0]}</i>
-            <span>
-              <b>{user.name}</b>
-              <small>{lang === "en" ? "My profile" : "حسابي"}</small>
-            </span>
-          </button>
-        ) : (
-          <div className="store-signin-actions">
-          <a className="google-signin" href="/api/store/auth/google"><b>G</b>{lang === "en" ? "Google" : "جوجل"}</a>
-          <button
-            className="signin-button"
-            onClick={() => {
-              setAccount(true);
-              setOpen(true);
-            }}
-          >
-            {lang === "en" ? "Sign in" : "تسجيل الدخول"}
-          </button>
-          </div>
-        )}
-        <button
-          className={`commerce-cart ${count ? "has-items" : ""}`}
-          onClick={() => setCartOpen(true)}
-        >
-          🛒 {t.cart} <b>{count}</b>
-        </button>
-      </header>
-      <section className="commerce-hero">
-        <div className="hero-copy">
-          <span>COFFEE • TOOLS • FILTER</span>
-          <h1>{t.title}</h1>
-          <p>{t.lead}</p>
-          <a href="#products">{t.cta} →</a>
-          <div className="hero-notes">
-            <small>✓ {t.fresh}</small>
-            <small>🚚 {t.delivery}</small>
-          </div>
-        </div>
-        <div className="brand-stage live-stage">
-          {items
-            .filter((p) => p.image && p.available > 0)
-            .slice(0, 3)
-            .map((p) => (
-              <a key={p.id} href={`/product/${p.id}`}>
-                <Image unoptimized width={600} height={600} src={p.image!} alt={rtl ? p.ar : p.name} />
-                <small>{rtl ? p.ar : p.name}</small>
-              </a>
-            ))}
-        </div>
-      </section>
-      <section className="category-strip dynamic-categories">
-        {categories.map((category, index) => (
-          <button key={category.id} onClick={() => setCat(category.slug)}>
-            <i>{categoryIcon(category.slug, index)}</i>
-            <span>
-              <b>{rtl ? category.name_ar : category.name_en}</b>
-              <small>
-                {items.filter((item) => item.cat === category.slug).length}{" "}
-                {rtl ? "منتج" : "products"}
-              </small>
-            </span>
-          </button>
-        ))}
-      </section>
-      <div id="products" className="commerce-shop-layout">
-        <section className="commerce-products">
-          <div className="products-top">
-            <div>
-              <span>SHOP NEO COFFEE</span>
-              <h2>{cat === "all" ? t.all : categoryName(cat)}</h2>
-            </div>
-          </div>
-          <div className="commercial-grid">
-            {productsError && <div role="alert" className="form-error">
-              <p>{rtl ? "تعذر تحميل المنتجات. سلتك محفوظة، حاول مرة أخرى." : "Could not load products. Your cart is saved. Please try again."}</p>
-              <button onClick={() => { setProductsError(false); setProductsAttempt(value => value + 1); }}>{rtl ? "إعادة المحاولة" : "Try again"}</button>
-            </div>}
-            {!productsLoaded && !productsError && <p role="status">{rtl ? "جاري تحميل المنتجات…" : "Loading products…"}</p>}
-            {productsLoaded && !productsError && !shown.length && <p>{rtl ? "لا توجد منتجات متاحة في هذا القسم حاليًا." : "No products are currently available in this category."}</p>}
-            {shown.map((p) => (
-              <article key={p.id}>
-                {p.image ? (
-                  <div className="commercial-photo">
-                    <Image unoptimized width={600} height={600} src={p.image} alt={rtl ? p.ar : p.name} />
-                  </div>
-                ) : (
-                  <div className={`commercial-pack ${p.tone}`}>
-                    <strong>{p.brand}</strong>
-                    <small>{p.detail}</small>
-                  </div>
-                )}
-                <em>{categoryName(p.cat)}</em>
-                <a
-                  className="product-title-link"
-                  href={`/product/${p.id}`}
-                  onClick={()=>trackEvent('select_item',{item_list_id:cat,items:[analyticsItem(p,1)]})}
-                >
-                  <h3>{rtl ? p.ar : p.name}</h3>
-                </a>
-                <p>{p.detail}</p>
-                <footer>
-                  <span className="store-price">
-                    {p.price < p.originalPrice && (
-                      <del>{p.originalPrice.toLocaleString()} EGP</del>
-                    )}
-                    <b>{p.price.toLocaleString()} EGP</b>
-                  </span>
-                  <button
-                    onClick={() => add(p)}
-                  >
-                    ＋ {t.add}
-                  </button>
-                </footer>
-              </article>
-            ))}
-          </div>
-        </section>
-        <aside className="category-sidebar" dir={rtl ? "rtl" : "ltr"}>
-          <div className="category-side-title">
-            <small>NEO COFFEE</small>
-            <h3>{lang === "en" ? "Categories" : "الأقسام"}</h3>
-          </div>
-          <button
-            className={cat === "all" ? "active" : ""}
-            onClick={() => setCat("all")}
-          >
-            <i>▦</i>
-            <span>
-              <b>{t.all}</b>
-              <small>
-                {items.length} {lang === "en" ? "products" : "منتجات"}
-              </small>
-            </span>
-            <em>›</em>
-          </button>
-          {categories.map((category, index) => (
-            <button
-              key={category.id}
-              className={cat === category.slug ? "active" : ""}
-              onClick={() => setCat(category.slug)}
-            >
-              <i>{categoryIcon(category.slug, index)}</i>
-              <span>
-                <b>{rtl ? category.name_ar : category.name_en}</b>
-                <small>
-                  {items.filter((item) => item.cat === category.slug).length}{" "}
-                  {rtl ? "منتج" : "products"}
-                </small>
-              </span>
-              <em>›</em>
-            </button>
-          ))}
-          <div className="side-help">
-            <i>?</i>
-            <p>
-              <b>
-                {lang === "en"
-                  ? "Need help choosing?"
-                  : "تحتاج مساعدة في الاختيار؟"}
-              </b>
-              <small>
-                {lang === "en"
-                  ? "Talk to our coffee team."
-                  : "تواصل مع فريق القهوة."}
-              </small>
-            </p>
-          </div>
-        </aside>
-      </div>
-      <section id="about" className="store-information">
-        <h2>{rtl ? "عن نيو كافي" : "About Neo Coffee"}</h2>
-        <p>{t.lead}</p>
-      </section>
-      <section id="contact" className="store-information">
-        <h2>{rtl ? "تواصل معنا" : "Contact us"}</h2>
-        <p>{rtl ? "تحتاج مساعدة في اختيار منتجاتك أو متابعة طلبك؟ تواصل معنا عبر واتساب." : "Need help choosing products or following up on an order? Contact us on WhatsApp."}</p>
-        <a href="https://wa.me/201148141496" target="_blank" rel="noreferrer">{rtl ? "تواصل عبر واتساب" : "Chat on WhatsApp"}</a>
-      </section>
+    <div className="commerce neo-storefront" dir={rtl ? "rtl" : "ltr"}>
+      <StorefrontHome arabic={rtl} items={items} categories={categories} loading={!productsLoaded} error={productsError} count={count} userName={user?.name}
+        onLanguage={()=>setLang(lang==='en'?'ar':'en')}
+        onAccount={()=>{if(user)setProfile(true);else{setAccount(true);setOpen(true);}}}
+        onCart={()=>setCartOpen(true)}
+        onAdd={id=>{const item=items.find(p=>p.id===id);if(item)add(item);}}
+        onSelect={id=>{const item=items.find(p=>p.id===id);if(item)trackEvent('select_item',{item_list_id:cat,items:[analyticsItem(item,1)]});}}
+        onRetry={()=>{setProductsError(false);setProductsAttempt(value=>value+1);}}
+      />
       {count > 0 && productsLoaded && (
         <button className="cart-confirm-bar" onClick={() => setCartOpen(true)}>
           <i>✓</i>
@@ -540,17 +291,7 @@ export default function Store() {
           <path d="M12.12 9.38c-.4 0-.9.1-1.2.77-.3.65-1.15 2.8-1.15 5.03 0 2.22 1.2 4.37 1.38 4.67.18.3 2.35 3.76 5.8 5.12 2.87 1.13 3.46.9 4.08.84.62-.07 2-.82 2.28-1.62.28-.8.28-1.49.2-1.62-.08-.15-.3-.23-.62-.39-.32-.15-1.99-.99-2.3-1.1-.31-.12-.54-.16-.77.16-.23.31-.88 1.1-1.08 1.33-.2.23-.4.26-.73.1-1.96-.97-3.25-1.76-4.54-4-.34-.58.34-.54.97-1.78.11-.23.06-.43-.02-.58-.08-.15-.76-1.83-1.04-2.5-.27-.66-.55-.57-.76-.58h-.65Z"/>
         </svg><b>{lang === "en" ? "Support" : "الدعم"}</b>
       </a>
-    </main>
+    </div>
   );
 }
 
-function categoryIcon(slug: string, index: number) {
-  const known: Record<string, string> = {
-    coffee: "☕",
-    tools: "◇",
-    machines: "▣",
-    grinders: "◉",
-    filter: "⌁",
-  };
-  return known[slug] || ["◆", "○", "□", "△"][index % 4];
-}
