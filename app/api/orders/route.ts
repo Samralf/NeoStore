@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';import { isAuthenticated } from '../../../lib/auth';import { setupOrders } from '../../../lib/orders';
-export async function GET(request:Request){if(!await isAuthenticated(request))return Response.json({error:'Unauthorized'},{status:401});await setupOrders();const id=Number(new URL(request.url).searchParams.get('id')||0);if(id){const order=await env.DB.prepare(`SELECT o.*,COALESCE(c.name,o.guest_name,'Guest') customer_name FROM orders o LEFT JOIN customers c ON c.id=o.customer_id WHERE o.id=?`).bind(id).first();if(!order)return Response.json({error:'Order not found'},{status:404});const items=await env.DB.prepare('SELECT product_id,product_name,quantity,unit_price,unit_cost FROM order_items WHERE order_id=? ORDER BY id').bind(id).all(),proof=await env.DB.prepare('SELECT file_key,file_name,uploaded_at FROM order_payment_proofs WHERE order_id=?').bind(id).first<{file_key:string;file_name:string;uploaded_at:string}>();return Response.json({order,items:items.results,proof:proof?{...proof,url:`/api/store/image?key=${encodeURIComponent(proof.file_key)}`}:null})}const rows=await env.DB.prepare(`SELECT o.*,COALESCE(c.name,o.guest_name,'Guest') customer_name FROM orders o LEFT JOIN customers c ON c.id=o.customer_id ORDER BY o.id DESC`).all();return Response.json(rows.results)}
+export async function GET(request:Request){if(!await isAuthenticated(request))return Response.json({error:'Unauthorized'},{status:401});await setupOrders();const id=Number(new URL(request.url).searchParams.get('id')||0);if(id){const order=await env.DB.prepare(`SELECT o.*,COALESCE(NULLIF(o.guest_name,''),c.name,'Guest') customer_name FROM orders o LEFT JOIN customers c ON c.id=o.customer_id WHERE o.id=?`).bind(id).first();if(!order)return Response.json({error:'Order not found'},{status:404});const items=await env.DB.prepare('SELECT product_id,product_name,quantity,unit_price,unit_cost FROM order_items WHERE order_id=? ORDER BY id').bind(id).all(),proof=await env.DB.prepare('SELECT file_key,file_name,uploaded_at FROM order_payment_proofs WHERE order_id=?').bind(id).first<{file_key:string;file_name:string;uploaded_at:string}>();return Response.json({order,items:items.results,proof:proof?{...proof,url:`/api/store/image?key=${encodeURIComponent(proof.file_key)}`}:null})}const rows=await env.DB.prepare(`SELECT o.*,COALESCE(NULLIF(o.guest_name,''),c.name,'Guest') customer_name FROM orders o LEFT JOIN customers c ON c.id=o.customer_id ORDER BY o.id DESC`).all();return Response.json(rows.results)}
 
 import { ownsOrderMutation } from '../../../lib/order-mutations';
 
@@ -7,14 +7,14 @@ export async function PATCH(request: Request) {
   if (!await isAuthenticated(request)) return Response.json({error:'Unauthorized'}, {status:401});
   await setupOrders();
   const body = await request.json<{id?:number;status?:string;paymentStatus?:string;discount?:number}>();
-  const statuses = ['awaiting_payment','new','preparing','shipped','delivered','cancelled'];
+  const statuses = ['awaiting_payment','new','preparing','shipped','awaiting_delivery','delivered','cancelled'];
   const payments = ['unpaid','proof_uploaded','paid','refunded'];
-  if (!body.id || !statuses.includes(body.status || '') || !payments.includes(body.paymentStatus || ''))
+  if (!body.id || !statuses.includes(body.status || '') || (body.paymentStatus!==undefined&&!payments.includes(body.paymentStatus)))
     return Response.json({error:'Invalid update'}, {status:400});
-  const order = await env.DB.prepare('SELECT status,subtotal,charged_shipping,discount,mutation_token FROM orders WHERE id=?')
-    .bind(body.id).first<{status:string;subtotal:number;charged_shipping:number;discount:number;mutation_token:string}>();
+  const order = await env.DB.prepare('SELECT status,payment_status,subtotal,charged_shipping,discount,mutation_token FROM orders WHERE id=?')
+    .bind(body.id).first<{status:string;payment_status:string;subtotal:number;charged_shipping:number;discount:number;mutation_token:string}>();
   if (!order) return Response.json({error:'الطلب غير موجود'}, {status:404});
-  const allowed: Record<string,string[]> = {awaiting_payment:['new','cancelled'],new:['preparing','cancelled'],preparing:['shipped','cancelled'],shipped:['delivered','cancelled'],delivered:[],cancelled:[]};
+  const allowed: Record<string,string[]> = {awaiting_payment:['new','cancelled'],new:['preparing','cancelled'],preparing:['shipped','cancelled'],shipped:['awaiting_delivery','delivered','cancelled'],awaiting_delivery:['delivered','cancelled'],delivered:[],cancelled:[]};
   if (body.status !== order.status && !allowed[order.status]?.includes(body.status!))
     return Response.json({error:'لا يمكن الرجوع من حالة الطلب الحالية أو تخطي مراحل التجهيز'}, {status:409});
   const discount = body.discount === undefined ? Number(order.discount || 0) : Number(body.discount);
@@ -25,7 +25,7 @@ export async function PATCH(request: Request) {
   const owns = ownsOrderMutation;
   const statements = [env.DB.prepare(
     'UPDATE orders SET status=?,payment_status=?,discount=?,total=?,updated_at=?,mutation_token=? WHERE id=? AND mutation_token=? AND status=?'
-  ).bind(body.status,body.paymentStatus,discount,total,now,token,body.id,order.mutation_token,order.status)];
+  ).bind(body.status,body.paymentStatus??order.payment_status,discount,total,now,token,body.id,order.mutation_token,order.status)];
   if (body.status !== order.status && (body.status === 'cancelled' || body.status === 'delivered')) {
     const items = await env.DB.prepare('SELECT product_id,quantity FROM order_items WHERE order_id=?').bind(body.id).all<{product_id:number;quantity:number}>();
     for (const item of items.results) {

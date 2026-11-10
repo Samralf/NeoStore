@@ -1,3 +1,4 @@
+import { setupPurchases } from '../../../lib/purchases';
 import { env } from "cloudflare:workers";
 import { isAuthenticated } from "../../../lib/auth";
 import { setupOrders } from "../../../lib/orders";
@@ -14,6 +15,7 @@ export async function GET(r: Request) {
   if (!(await isAuthenticated(r)))
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   await setupOrders();
+  await setupPurchases();
   await env.DB.prepare(
     "CREATE TABLE IF NOT EXISTS purchases(id INTEGER PRIMARY KEY AUTOINCREMENT,invoice_number TEXT NOT NULL UNIQUE,supplier_id INTEGER,total REAL NOT NULL DEFAULT 0,purchased_at TEXT NOT NULL,notes TEXT)",
   ).run();
@@ -31,7 +33,7 @@ export async function GET(r: Request) {
       .bind(month.from, month.to)
       .first<ValueRow>(),
     purchases = await env.DB.prepare(
-      `SELECT COALESCE(SUM(total),0) value FROM purchases WHERE date(purchased_at)>=? AND date(purchased_at)<?`,
+      `SELECT COALESCE(SUM(total),0) value FROM purchases WHERE status='posted' AND date(purchased_at)>=? AND date(purchased_at)<?`,
     )
       .bind(month.fromDate, month.toDate)
       .first<ValueRow>(),

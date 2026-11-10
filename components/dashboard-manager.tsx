@@ -18,6 +18,7 @@ const status: Record<string, string> = {
   new: "طلب جديد",
   preparing: "جاري التجهيز",
   shipped: "تم الشحن",
+  awaiting_delivery: "في انتظار التسليم",
   delivered: "تم التسليم",
   cancelled: "ملغي",
 };

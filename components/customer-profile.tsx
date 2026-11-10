@@ -436,6 +436,7 @@ function orderStatus(status: string, arabic: boolean) {
     new: ["New order", "طلب جديد"],
     preparing: ["Preparing", "جاري التجهيز"],
     shipped: ["Shipped", "تم الشحن"],
+    awaiting_delivery: ["Awaiting delivery", "في انتظار التسليم"],
     delivered: ["Delivered", "تم التسليم"],
     cancelled: ["Cancelled", "ملغي"],
   };

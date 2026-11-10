@@ -6,6 +6,8 @@ type Order = {
   order_number: string;
   customer_name: string;
   verified_phone: string;
+  delivery_phone?: string | null;
+  customer_email?: string | null;
   governorate_name: string;
   delivery_address: string;
   status: string;
@@ -24,7 +26,8 @@ const statusLabel: Record<string, string> = {
     new: "طلب جديد",
     preparing: "جاري التجهيز",
     shipped: "تم الشحن",
-    delivered: "تم التسليم",
+    awaiting_delivery: "في انتظار التسليم",
+    delivered: "انتهى / تم التسليم",
     cancelled: "ملغي",
   },
   paymentLabel: Record<string, string> = {
@@ -36,7 +39,8 @@ const nextStatus: Record<string, string[]> = {
   awaiting_payment: ["new", "cancelled"],
   new: ["preparing", "cancelled"],
   preparing: ["shipped", "cancelled"],
-  shipped: ["delivered", "cancelled"],
+  shipped: ["awaiting_delivery", "delivered", "cancelled"],
+  awaiting_delivery: ["delivered", "cancelled"],
   delivered: [],
   cancelled: [],
 };
@@ -80,6 +84,16 @@ export default function OrderManager({ initialId }: { initialId?: number }) {
       ),
     [orders, filter, query],
   );
+  async function updateRow(order:Order,status:string) {
+    setSaving(true);setError('');
+    try {
+      const response=await fetch('/api/orders',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id:order.id,status})});
+      const result=await response.json<{error?:string}>();
+      if(!response.ok)throw new Error(result.error||'تعذر تحديث الحالة');
+      await load();
+    }catch(reason){setError(reason instanceof Error?reason.message:'تعذر تحديث الحالة');}
+    finally{setSaving(false);}
+  }
   async function open(id: number) {
     const r = await fetch(`/api/orders?id=${id}`);
     if (r.ok) {
@@ -170,6 +184,7 @@ export default function OrderManager({ initialId }: { initialId?: number }) {
           ["new", "طلبات جديدة"],
           ["preparing", "جاري التجهيز"],
           ["shipped", "تم الشحن"],
+          ["awaiting_delivery", "في انتظار التسليم"],
           ["delivered", "تم التسليم"],
           ["cancelled", "ملغي"],
         ].map(([v, l]) => (
@@ -182,6 +197,7 @@ export default function OrderManager({ initialId }: { initialId?: number }) {
           </button>
         ))}
       </div>
+      {error && !selected && <div role="alert" className="form-error">{error}</div>}
       {loading ? (
         <div className="loading-row">جاري تحميل الطلبات...</div>
       ) : shown.length ? (
@@ -194,8 +210,8 @@ export default function OrderManager({ initialId }: { initialId?: number }) {
             <span>الحالة</span>
           </div>
           {shown.map((o) => (
-            <button key={o.id} className="order" onClick={() => open(o.id)}>
-              <b>{o.order_number}</b>
+            <div key={o.id} className="order">
+              <button className="text-button" onClick={()=>open(o.id)}>{o.order_number}</button>
               <span>{o.customer_name}</span>
               <span>{o.governorate_name}</span>
               <b>{Number(o.total).toLocaleString()} ج.م</b>
@@ -211,8 +227,12 @@ export default function OrderManager({ initialId }: { initialId?: number }) {
                 }
               >
                 {statusLabel[o.status] || o.status}
+                {nextStatus[o.status]?.length>0&&<select aria-label={`تحديث حالة الطلب ${o.order_number}`} value={o.status} disabled={saving} onChange={e=>void updateRow(o,e.target.value)}>
+                  <option value={o.status}>{statusLabel[o.status]}</option>
+                  {nextStatus[o.status].map(status=><option key={status} value={status}>{statusLabel[status]}</option>)}
+                </select>}
               </em>
-            </button>
+            </div>
           ))}
         </div>
       ) : (
@@ -236,8 +256,8 @@ export default function OrderManager({ initialId }: { initialId?: number }) {
               <b>{selected.order.customer_name}</b>
             </div>
             <div>
-              <small>الهاتف المؤكد</small>
-              <b dir="ltr">{selected.order.verified_phone}</b>
+              <small>هاتف التوصيل المكتوب في الطلب</small>
+              <b dir="ltr">{selected.order.delivery_phone || selected.order.verified_phone}</b>
             </div>
             <div>
               <small>المحافظة والعنوان</small>
@@ -254,6 +274,7 @@ export default function OrderManager({ initialId }: { initialId?: number }) {
               </b>
             </div>
           </div>
+          {selected.order.customer_email && <p>بريد الحساب وقت الطلب: <span dir="ltr">{selected.order.customer_email}</span></p>}
           <h3>المنتجات</h3>
           <div className="order-items">
             {selected.items.map((i) => (

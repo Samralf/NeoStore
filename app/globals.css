@@ -768,6 +768,28 @@ button {
   background: #e4edf5;
   color: #486b84;
 }
+.order em:has(select) {
+  width: 100%;
+  min-width: 0;
+  border-radius: 8px;
+}
+.order em select {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  margin-top: 5px;
+  border: 1px solid #b9cee8;
+  border-radius: 6px;
+  background: white;
+  color: #174b84;
+  font: inherit;
+  font-size: 11px;
+}
+.order > .text-button {
+  min-height: 36px;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
 .order em.done,
 .prow > em.done {
   background: #e5f0fb;

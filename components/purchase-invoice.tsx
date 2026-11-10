@@ -11,6 +11,7 @@ type Line = {
 };
 type PurchaseProduct = { id: number; name_ar: string; code: string };
 type PurchaseSupplier = { id: number; name: string };
+export type InvoiceDraft={id:number;revision:number;invoiceNumber:string;supplierId:number;purchasedAt:string;notes:string;lines:Line[]};
 const blank = (): Line => ({
   productId: 0,
   quantity: 1,
@@ -25,17 +26,19 @@ export default function PurchaseInvoice({
   suppliers,
   close,
   done,
+  initial,
 }: {
   products: PurchaseProduct[];
   suppliers: PurchaseSupplier[];
   close: () => void;
   done: () => void;
+  initial?: InvoiceDraft;
 }) {
-  const [lines, setLines] = useState<Line[]>([blank()]),
-    [invoice, setInvoice] = useState(""),
-    [supplier, setSupplier] = useState(0),
-    [date, setDate] = useState(new Date().toISOString().slice(0, 10)),
-    [notes, setNotes] = useState(""),
+  const [lines, setLines] = useState<Line[]>(initial?.lines || [blank()]),
+    [invoice, setInvoice] = useState(initial?.invoiceNumber || ""),
+    [supplier, setSupplier] = useState(initial?.supplierId || 0),
+    [date, setDate] = useState(initial?.purchasedAt || new Date().toISOString().slice(0, 10)),
+    [notes, setNotes] = useState(initial?.notes || ""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     total = useMemo(
@@ -50,12 +53,15 @@ export default function PurchaseInvoice({
     setLines((a) => a.map((x, n) => (n === i ? { ...x, [k]: v } : x)));
   }
   async function save() {
+    if (busy) return;
     setBusy(true);
     setError("");
+    try {
     const r = await fetch("/api/purchases", {
-        method: "POST",
+        method: initial ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          type:'purchase',id:initial?.id,revision:initial?.revision,
           invoiceNumber: invoice,
           supplierId: supplier,
           purchasedAt: date,
@@ -64,9 +70,13 @@ export default function PurchaseInvoice({
         }),
       }),
       d = await r.json<{ error?: string }>();
-    setBusy(false);
     if (!r.ok) return setError(d.error || "تعذر حفظ فاتورة الشراء");
     done();
+    } catch {
+      setError("تعذر الاتصال. بيانات الفاتورة ما زالت محفوظة هنا؛ حاول مرة أخرى.");
+    } finally {
+      setBusy(false);
+    }
   }
   return (
     <div className="modal-backdrop">
@@ -74,7 +84,8 @@ export default function PurchaseInvoice({
         <div className="form-head">
           <div>
             <small>المشتريات</small>
-            <h2>فاتورة شراء متعددة الأصناف</h2>
+            <h2>{initial?'تعديل مسودة الفاتورة':'فاتورة شراء جديدة — مسودة'}</h2>
+            <p>الحفظ لا يغيّر المخزون. افتح الفاتورة واضغط «ترحيل» بعد المراجعة.</p>
           </div>
           <button onClick={close}>×</button>
         </div>
@@ -222,7 +233,7 @@ export default function PurchaseInvoice({
             disabled={busy || !invoice || !supplier}
             onClick={save}
           >
-            {busy ? "جاري الحفظ..." : "حفظ الفاتورة وتحديث المخزون"}
+            {busy ? "جاري الحفظ..." : "حفظ مسودة الفاتورة"}
           </button>
           <button className="secondary" onClick={close}>
             إلغاء

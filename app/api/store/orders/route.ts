@@ -160,14 +160,14 @@ export async function POST(r: Request) {
   ).run();
   const statements = [
     env.DB.prepare(
-      `INSERT INTO orders(order_number,customer_id,guest_name,verified_phone,governorate_name,delivery_address,payment_method,status,subtotal,original_shipping,charged_shipping,free_shipping,total,created_at,updated_at,source) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'website')`,
+      `INSERT INTO orders(order_number,customer_id,guest_name,verified_phone,governorate_name,delivery_address,payment_method,status,subtotal,original_shipping,charged_shipping,free_shipping,total,created_at,updated_at,source,delivery_phone,customer_email,customer_input_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'website',?,?,?)`,
     ).bind(
       number,
       customer,
-      b.name.trim(),
+      b.name,
       phone,
       gov[0],
-      b.address.trim(),
+      b.address,
       payment,
       status,
       subtotal,
@@ -177,6 +177,9 @@ export async function POST(r: Request) {
       total,
       now,
       now,
+      b.phone || phone,
+      customerRow?.email || null,
+      JSON.stringify({name:b.name,phone:b.phone||phone,governorate:b.governorate,address:b.address,paymentMethod:b.paymentMethod,items:lines}),
     ),
     ...lines.flatMap((x) => {
       const p = products.find((v) => v.id === x.id)!;

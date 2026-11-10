@@ -1,10 +1,10 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
-import PurchaseInvoice from "./purchase-invoice";
+import PurchaseInvoice, { type InvoiceDraft } from "./purchase-invoice";
 type Supplier = { id: number; name: string; phone?: string | null; address?: string | null; notes?: string | null; invoice_count?: number; total_purchases?: number; last_purchase?: string | null };
-type Purchase = { id: number; invoice_number: string; supplier_name?: string | null; total: number; purchased_at: string; notes?: string | null };
+type Purchase = { id: number; supplier_id:number; status:"draft"|"posted"; revision:number; invoice_number: string; supplier_name?: string | null; total: number; purchased_at: string; notes?: string | null };
 type Product = { id: number; name_ar: string; nameAr?: string; code: string };
-type PurchaseItem = { id: number; product_name?: string | null; product_code?: string | null; quantity: number; unit_purchase_price: number; unit_operating_cost: number; batch_number?: string | null; expiry_date?: string | null; website_quantity?: number };
+type PurchaseItem = { id: number; product_id:number; product_name?: string | null; product_code?: string | null; quantity: number; unit_purchase_price: number; unit_operating_cost: number; batch_number?: string | null; expiry_date?: string | null; website_quantity?: number };
 type PurchaseDetail = { purchase: Purchase & { supplier_phone?: string | null; supplier_address?: string | null }; items: PurchaseItem[] };
 type SupplierDetail = { supplier: Supplier; invoices: Purchase[] };
 type PurchaseData = { suppliers: Supplier[]; purchases: Purchase[] };
@@ -17,6 +17,24 @@ export default function PurchaseManager() {
     [detailLoading, setDetailLoading] = useState(false),
     [supplierDetail, setSupplierDetail] = useState<SupplierDetail | null>(null),
     [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [editingInvoice,setEditingInvoice]=useState<InvoiceDraft|undefined>(),[invoiceBusy,setInvoiceBusy]=useState(false);
+  function editInvoice(d:PurchaseDetail){
+    setEditingInvoice({id:d.purchase.id,revision:d.purchase.revision,invoiceNumber:d.purchase.invoice_number,supplierId:d.purchase.supplier_id,purchasedAt:d.purchase.purchased_at,notes:d.purchase.notes||'',lines:d.items.map(i=>({productId:i.product_id,quantity:i.quantity,purchasePrice:i.unit_purchase_price,operatingCost:i.unit_operating_cost,websiteQuantity:i.website_quantity||0,batchNumber:i.batch_number||'',expiryDate:i.expiry_date||''}))});
+    setDetail(null);setMode('purchase');
+  }
+  async function invoiceAction(action:'post'|'delete'){
+    if(!detail||invoiceBusy)return;
+    const p=detail.purchase;
+    if(!confirm(action==='post'?'ترحيل الفاتورة وتحديث المخزون؟ لن يمكن تعديلها بعد ذلك.':'حذف الفاتورة وعكس أثرها على المخزون والمشتريات؟'))return;
+    setInvoiceBusy(true);setError('');
+    try{
+      const response=await fetch(action==='delete'?`/api/purchases?id=${p.id}&revision=${p.revision}`:'/api/purchases',{method:action==='delete'?'DELETE':'PATCH',headers:{'content-type':'application/json'},...(action==='post'?{body:JSON.stringify({action,id:p.id,revision:p.revision})}:{})});
+      const data=await response.json<{error?:string}>();if(!response.ok)throw new Error(data.error||'تعذر تنفيذ العملية');
+      if(action==='delete')setDetail(null);else await openPurchase(p.id);
+      await load();
+    }catch(reason){setError(reason instanceof Error?reason.message:'تعذر تنفيذ العملية');}
+    finally{setInvoiceBusy(false);}
+  }
   async function load() {
     setData(await fetch("/api/purchases").then((r) => r.json<PurchaseData>()));
     setProducts(
@@ -104,16 +122,16 @@ export default function PurchaseManager() {
           <button className="secondary" onClick={() => setMode("supplier")}>
             ＋ مورد
           </button>{" "}
-          <button className="primary" onClick={() => setMode("purchase")}>
+          <button className="primary" onClick={() => {setEditingInvoice(undefined);setMode("purchase");}}>
             ＋ فاتورة شراء
           </button>
         </div>
       </div>
       <div className="purchase-total">
-        <small>إجمالي المشتريات المسجلة</small>
+        <small>إجمالي المشتريات المرحلة</small>
         <b>
           {data.purchases
-            .reduce((s, p) => s + Number(p.total), 0)
+            .filter(p=>p.status==='posted').reduce((s, p) => s + Number(p.total), 0)
             .toLocaleString()}{" "}
           ج.م
         </b>
@@ -139,7 +157,7 @@ export default function PurchaseManager() {
         </div>
         {data.purchases.map((p) => (
           <button className="purchase-row" key={p.id} onClick={() => openPurchase(p.id)}>
-            <b>{p.invoice_number}</b>
+            <span><b>{p.invoice_number}</b><small>{p.status==='draft'?'مسودة':'مرحلة — مقفلة'}</small></span>
             <span>{p.supplier_name}</span>
             <span>{p.purchased_at}</span>
             <b>{Number(p.total).toLocaleString()} ج.م</b>
@@ -166,7 +184,7 @@ export default function PurchaseManager() {
           <div className="supplier-invoices">
             {supplierDetail.invoices.length ? supplierDetail.invoices.map((invoice) => (
               <button key={invoice.id} onClick={() => { setSupplierDetail(null); openPurchase(invoice.id); }}>
-                <span><b>{invoice.invoice_number}</b><small>{invoice.purchased_at}</small></span>
+                <span><b>{invoice.invoice_number}</b><small>{invoice.purchased_at} • {invoice.status==='draft'?'مسودة':'مرحلة'}</small></span>
                 <strong>{Number(invoice.total).toLocaleString()} ج.م</strong>
               </button>
             )) : <div className="orders-empty small">لا توجد فواتير لهذا المورد.</div>}
@@ -198,7 +216,12 @@ export default function PurchaseManager() {
           <button className="close" onClick={() => setDetail(null)}>×</button>
           <small>تفاصيل فاتورة الشراء</small>
           <h2>{detail.purchase.invoice_number}</h2>
-          <p>{detail.purchase.purchased_at}</p>
+          <p>{detail.purchase.purchased_at} • {detail.purchase.status==='draft'?'مسودة — لا تؤثر على المخزون':'مرحلة — التعديل مغلق'}</p>
+          {error&&<div role="alert" className="form-error">{error}</div>}
+          <div className="supplier-actions">
+            {detail.purchase.status==='draft'&&<><button className="secondary" disabled={invoiceBusy} onClick={()=>editInvoice(detail)}>تعديل الفاتورة</button><button className="primary" disabled={invoiceBusy} onClick={()=>void invoiceAction('post')}>ترحيل</button></>}
+            <button className="danger-button" disabled={invoiceBusy} onClick={()=>void invoiceAction('delete')}>حذف الفاتورة</button>
+          </div>
           <div className="customer-order-info">
             <div><small>المورد</small><b>{detail.purchase.supplier_name || "غير محدد"}</b></div>
             <div><small>الهاتف</small><b dir="ltr">{detail.purchase.supplier_phone || "—"}</b></div>
@@ -337,6 +360,7 @@ export default function PurchaseManager() {
       )}
       {mode === "purchase" && (
         <PurchaseInvoice
+          initial={editingInvoice}
           products={products}
           suppliers={data.suppliers}
           close={() => setMode("list")}

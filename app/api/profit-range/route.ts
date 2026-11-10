@@ -1,3 +1,4 @@
+import { setupPurchases } from '../../../lib/purchases';
 import { env } from "cloudflare:workers";
 import { isAuthenticated } from "../../../lib/auth";
 import { setupOrders } from "../../../lib/orders";
@@ -8,6 +9,7 @@ export async function GET(r: Request) {
   if (!(await isAuthenticated(r)))
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   await setupOrders();
+  await setupPurchases();
   await env.DB.batch([
     env.DB.prepare(
       "CREATE TABLE IF NOT EXISTS suppliers(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,phone TEXT,address TEXT,notes TEXT)",
@@ -43,14 +45,14 @@ export async function GET(r: Request) {
       .bind(fromUtc, toUtc)
       .all(),
     purchaseSummary = await env.DB.prepare(
-      "SELECT COALESCE(SUM(total),0) total FROM purchases WHERE date(purchased_at)>=? AND date(purchased_at)<?",
+      "SELECT COALESCE(SUM(total),0) total FROM purchases WHERE status='posted' AND date(purchased_at)>=? AND date(purchased_at)<?",
     )
       .bind(from, addDateDays(to, 1))
       .first<{ total: number }>(),
     supplierPurchases = await env.DB.prepare(
       `SELECT COALESCE(s.name,'بدون مورد') supplier_name,COUNT(p.id) invoice_count,SUM(p.total) total
        FROM purchases p LEFT JOIN suppliers s ON s.id=p.supplier_id
-       WHERE date(p.purchased_at)>=? AND date(p.purchased_at)<?
+       WHERE p.status='posted' AND date(p.purchased_at)>=? AND date(p.purchased_at)<?
        GROUP BY p.supplier_id,s.name ORDER BY total DESC`,
     )
       .bind(from, addDateDays(to, 1))
