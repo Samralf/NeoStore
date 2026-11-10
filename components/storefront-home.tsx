@@ -20,12 +20,12 @@ export default function StorefrontHome(props:Props){
  const categoryName=(slug:string)=>{const c=categories.find(c=>c.slug===slug);return c?(arabic?c.name_ar:c.name_en):slug;};
  const add=(p:StorefrontProduct)=>{onAdd(p.id);setAnnouncement(t(`${p.name} added to your bag`, `تمت إضافة ${p.ar} للسلة`));};
  function card(p:StorefrontProduct){return <article className="neo-product" key={p.id}>
-  <a href={`/product/${p.id}`} className="neo-product-photo" onClick={()=>onSelect(p.id)} tabIndex={-1} aria-hidden="true">
+  <a href={`/product/${p.id}?lang=${arabic?"ar":"en"}`} className="neo-product-photo" onClick={()=>onSelect(p.id)} tabIndex={-1} aria-hidden="true">
    {p.image?<img src={p.image} alt="" width="480" height="480" loading="lazy" decoding="async"/>:<StoreIcon name="cup" width="100" height="100"/>}
    <span className="neo-product-tag">{p.price<p.originalPrice?t('Special price','سعر خاص'):t('The daily edit','مختارات نيو')}</span>
   </a>
   <div className="neo-product-body"><div className="neo-product-meta"><span>{categoryName(p.cat)}</span><span className="neo-stock"><i/>{p.available>0?t('In stock','متوفر'):t('Sold out','نفد')}</span></div>
-   <a href={`/product/${p.id}`} onClick={()=>onSelect(p.id)} className="neo-product-title"><h3>{arabic?p.ar:p.name}</h3></a><p className="neo-product-detail">{p.detail}</p>
+   <a href={`/product/${p.id}?lang=${arabic?"ar":"en"}`} onClick={()=>onSelect(p.id)} className="neo-product-title"><h3>{arabic?p.ar:p.name}</h3></a><p className="neo-product-detail">{p.detail}</p>
    {/* Ratings are data-driven; never invent customer reviews or star scores. */}
    <div className="neo-rating">{p.rating&&p.reviewCount?<><span aria-hidden="true">★★★★★</span><span>{p.rating.toFixed(1)} / 5 ({p.reviewCount})</span></>:<><span aria-hidden="true">☆☆☆☆☆</span><span>{t('Not rated yet','لم يُقيّم بعد')}</span></>}</div>
    <div className="neo-product-bottom"><div><strong>{p.price.toLocaleString(arabic?'ar-EG':'en-EG')} <small>{t('EGP','ج.م')}</small></strong>{p.price<p.originalPrice&&<del>{p.originalPrice.toLocaleString()} {t('EGP','ج.م')}</del>}</div><button onClick={()=>add(p)} disabled={p.available<=0} aria-label={t(`Add ${p.name} to cart`,`إضافة ${p.ar} للسلة`)}><span>+</span><span>{t('Add','أضف')}</span></button></div>
@@ -47,7 +47,7 @@ export default function StorefrontHome(props:Props){
    </div>
    <div className="neo-hero-visual"><span className="neo-orbit neo-orbit-one"/><span className="neo-orbit neo-orbit-two"/><div className="neo-hero-label"><StoreIcon name="cup"/><span>{t('A GOOD DAY','يوم جميل')}<br/><b>{t('starts with coffee','يبدأ بقهوة')}</b></span></div>
     <span className="neo-vertical-word">THE COFFEE EDIT / 01</span>
-    {heroProduct?<a className="neo-hero-product" href={`/product/${heroProduct.id}`} onClick={()=>onSelect(heroProduct.id)} aria-label={arabic?heroProduct.ar:heroProduct.name}><img src={heroProduct.image!} width="600" height="600" fetchPriority="high" alt={arabic?heroProduct.ar:heroProduct.name}/></a>:<div className="neo-hero-placeholder"><StoreIcon name="cup" width="160" height="160"/></div>}
+    {heroProduct?<a className="neo-hero-product" href={`/product/${heroProduct.id}?lang=${arabic?"ar":"en"}`} onClick={()=>onSelect(heroProduct.id)} aria-label={arabic?heroProduct.ar:heroProduct.name}><img src={heroProduct.image!} width="600" height="600" fetchPriority="high" alt={arabic?heroProduct.ar:heroProduct.name}/></a>:<div className="neo-hero-placeholder"><StoreIcon name="cup" width="160" height="160"/></div>}
     <div className="neo-hero-caption"><span>{t('DISCOVER YOUR NEXT FAVOURITE','اكتشف اختيارك القادم')}</span><b>{heroProduct?t(heroProduct.name,heroProduct.ar):t('Your daily coffee ritual','لحظة قهوتك اليومية')}</b><a href="#coffee" aria-label={t('Explore coffee','اكتشف القهوة')}><StoreIcon name="arrow"/></a></div>
    </div>
   </section>

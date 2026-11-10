@@ -58,6 +58,10 @@ export default function Store() {
     } | null>(null),
     [user, setUser] = useState<StoreUser | null>(null),
     [profile, setProfile] = useState(false);
+  useEffect(() => {
+    const selected = new URLSearchParams(window.location.search).get('lang');
+    try { setLang(selected === 'ar' || selected === 'en' ? selected : localStorage.getItem('neo-store-language') === 'ar' ? 'ar' : 'en'); } catch { setLang(selected === 'ar' ? 'ar' : 'en'); }
+  }, []);
   const rtl = lang === "ar";
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -209,7 +213,7 @@ export default function Store() {
   return (
     <div className="commerce neo-storefront" dir={rtl ? "rtl" : "ltr"}>
       <StorefrontHome arabic={rtl} items={items} categories={categories} loading={!productsLoaded} error={productsError} count={count} userName={user?.name}
-        onLanguage={()=>setLang(lang==='en'?'ar':'en')}
+        onLanguage={()=>{const next=lang==='en'?'ar':'en';setLang(next);try{localStorage.setItem('neo-store-language',next);}catch{} }}
         onAccount={()=>{if(user)setProfile(true);else{setAccount(true);setOpen(true);}}}
         onCart={()=>setCartOpen(true)}
         onAdd={id=>{const item=items.find(p=>p.id===id);if(item)add(item);}}
