@@ -731,6 +731,16 @@ button {
 .orders {
   margin: 12px -17px -17px;
 }
+.mfa-settings form{display:grid;gap:16px;max-width:560px;margin-top:20px}
+.mfa-settings label{display:grid;gap:7px}
+.mfa-settings input{min-height:44px;padding:10px;border:1px solid #c6d5e6;border-radius:6px;width:100%}
+.mfa-settings small{color:#5a6b7a;font-size:12px}
+.mfa-enrollment{background:#f7f9fc;border:1px solid #dbe3ed;padding:20px;border-radius:8px;display:grid;gap:14px;justify-items:start}
+.mfa-enrollment svg{max-width:100%;height:auto;background:white}
+.mfa-enrollment code{display:block;overflow-wrap:anywhere;user-select:all;margin-top:10px}
+.mfa-recovery{padding:20px;background:#f4f8fd;border:1px solid #c6d5e6;border-radius:8px;margin-top:20px}
+.mfa-recovery ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px;padding:16px 0;list-style:none}
+.mfa-recovery code{user-select:all;font-size:14px}
 .order {
   width: 100%;
   display: grid;

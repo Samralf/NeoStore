@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import {equal} from './totp';
 
 const encoder = new TextEncoder();
 const maxAge = 60 * 60 * 12;
@@ -15,7 +16,7 @@ async function signature(value: string) {
   return toHex(await crypto.subtle.sign('HMAC', key, encoder.encode(value)));
 }
 
-async function authVersion() {
+export async function authVersion() {
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY NOT NULL,value TEXT NOT NULL,updated_at TEXT NOT NULL)').run();
   return (await env.DB.prepare("SELECT value FROM settings WHERE key='auth_version'").first<{value:string}>())?.value || '1';
 }
@@ -33,7 +34,7 @@ export async function verifyPassword(password: string, stored: string) {
   const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(v=>parseInt(v,16)));
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt, iterations:Number(rounds) }, key, 256);
-  return toHex(bits) === expected;
+  return equal(toHex(bits),expected);
 }
 
 export async function currentPasswordHash() {
@@ -41,9 +42,9 @@ export async function currentPasswordHash() {
   return (await env.DB.prepare("SELECT value FROM settings WHERE key='admin_password_hash'").first<{value:string}>())?.value || env.ADMIN_PASSWORD_HASH;
 }
 
-export async function createSessionCookie() {
+export async function createSessionCookie(version?:string) {
   const expires = Math.floor(Date.now() / 1000) + maxAge;
-  const payload = `owner.${expires}.${await authVersion()}`;
+  const payload = `owner.${expires}.${version ?? await authVersion()}`;
   return `${payload}.${await signature(payload)}`;
 }
 
@@ -52,9 +53,10 @@ export async function isAuthenticated(request: Request) {
   const cookie = request.headers.get('cookie')?.match(/(?:^|;\s*)neo_session=([^;]+)/)?.[1];
   if (!cookie) return false;
   const [owner, expires, version, supplied] = cookie.split('.');
+  if(cookie.split('.').length!==4||!Number.isSafeInteger(Number(expires)))return false;
   if (owner !== 'owner' || !expires || !version || !supplied || Number(expires) < Date.now() / 1000) return false;
   if (version !== await authVersion()) return false;
-  return supplied === await signature(`${owner}.${expires}.${version}`);
+  return equal(supplied,await signature(`${owner}.${expires}.${version}`));
 }
 
 export function sessionCookieHeader(value: string, request?: Request) {

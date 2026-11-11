@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useState } from "react";
 import SecurityAudit from "./security-audit";
+import AdminMfaSettings from './admin-mfa-settings';
 
 export default function AccountSettings() {
   const [message, setMessage] = useState(""),
@@ -39,6 +40,7 @@ export default function AccountSettings() {
           <p>التحكم في كلمة مرور حساب مالك المتجر</p>
         </div>
       </div>
+      <AdminMfaSettings />
       <div className="security-card">
         <div className="security-title">
           <i>●</i>

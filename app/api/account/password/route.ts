@@ -12,7 +12,7 @@ export async function PATCH(request:Request) {
   const stored=await currentPasswordHash();
   if(!stored||!await verifyPassword(currentPassword,stored)) return Response.json({error:'كلمة المرور الحالية غير صحيحة'},{status:400});
   const nextHash=await hashPassword(newPassword), now=new Date().toISOString();
-  const version=Number((await env.DB.prepare("SELECT value FROM settings WHERE key='auth_version'").first<{value:string}>())?.value||'1')+1;
+  const version=crypto.randomUUID();
   await env.DB.batch([
     env.DB.prepare("INSERT INTO settings(key,value,updated_at) VALUES('admin_password_hash',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(nextHash,now),
     env.DB.prepare("INSERT INTO settings(key,value,updated_at) VALUES('auth_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(String(version),now),

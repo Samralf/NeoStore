@@ -5,6 +5,7 @@ import { FormEvent, ReactNode, useEffect, useState } from "react";
 export default function AuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<"loading" | "guest" | "owner">("loading");
   const [error, setError] = useState("");
+  const [mfaRequired,setMfaRequired]=useState(false),[busy,setBusy]=useState(false);
   useEffect(() => {
     fetch("/api/auth")
       .then((r) => r.json<{ authenticated: boolean }>())
@@ -13,18 +14,25 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   }, []);
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if(busy)return;
     setError("");
+    setBusy(true);
+    const code=String(new FormData(event.currentTarget).get('code')||'');
     const password = String(
       new FormData(event.currentTarget).get("password") || "",
     );
+    try {
     const response = await fetch("/api/auth", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password,code }),
     });
-    const body = await response.json<{ error?: string }>();
-    if (response.ok) setState("owner");
-    else setError(body.error || "تعذر تسجيل الدخول");
+    const body = await response.json<{ error?: string;authenticated?:boolean;mfaRequired?:boolean }>();
+    if(body.mfaRequired)setMfaRequired(true);
+    if (response.ok&&body.authenticated) setState("owner");
+    else if(!response.ok)setError(body.error || "تعذر تسجيل الدخول");
+    } catch {setError('تعذر الاتصال. حاول مرة أخرى.');}
+    finally {setBusy(false);}
   }
   if (state === "loading")
     return (
@@ -46,13 +54,15 @@ export default function AuthGate({ children }: { children: ReactNode }) {
             <input
               name="password"
               type="password"
+              autoComplete="current-password"
               autoFocus
               required
               placeholder="••••••••"
             />
           </label>
-          {error && <div className="form-error">{error}</div>}
-          <button className="primary" type="submit">
+          {mfaRequired&&<label>كود Microsoft Authenticator أو كود استرداد<input name="code" type="text" autoComplete="one-time-code" autoFocus required maxLength={64} dir="ltr" spellCheck={false}/><small>أدخل الكود الحالي من التطبيق. كل كود استرداد يُستخدم مرة واحدة.</small></label>}
+          {error && <div role="alert" className="form-error">{error}</div>}
+          <button className="primary" type="submit" disabled={busy}>
             دخول إلى النظام
           </button>
         </form>

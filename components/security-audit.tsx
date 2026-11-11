@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 
 type Entry = { id: number; event: string; ip: string; created_at: string };
 const labels: Record<string, string> = {
+  admin_mfa_enabled:'تم تفعيل Microsoft Authenticator',
+  admin_mfa_disabled:'تم إيقاف التحقق بخطوتين',
+  admin_mfa_failed:'كود تحقق غير صحيح أو مستخدم',
+  admin_mfa_recovery_used:'تم استخدام كود استرداد',
+  admin_mfa_recovery_regenerated:'تم تجديد أكواد الاسترداد',
   admin_login_success: 'دخول إدارة ناجح',
   admin_login_failed: 'محاولة دخول غير ناجحة',
   admin_login_rate_limited: 'إيقاف محاولات دخول كثيرة',
