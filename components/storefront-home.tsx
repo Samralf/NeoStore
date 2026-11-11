@@ -11,6 +11,7 @@ const equipmentCategories=new Set(['tools','grinders','machines','filter']);
 export default function StorefrontHome(props:Props){
  const {arabic,items,categories,loading,error,count,userName,onLanguage,onAccount,onCart,onAdd,onSelect,onRetry}=props;
  const [search,setSearch]=useState(''),[category,setCategory]=useState('all'),[freeShipping,setFreeShipping]=useState(false),[announcement,setAnnouncement]=useState('');
+ useEffect(()=>{setSearch(new URLSearchParams(window.location.search).get('q')||'');},[]);
  const t=(en:string,ar:string)=>arabic?ar:en;
  useEffect(()=>{let active=true;fetch('/api/store/shipping').then(r=>r.ok?r.json<{freeShipping:boolean}>():null).then(d=>{if(active)setFreeShipping(d?.freeShipping===true);}).catch(()=>{});return()=>{active=false;};},[]);
  const coffees=items.filter(p=>p.cat==='coffee'),equipment=items.filter(p=>equipmentCategories.has(p.cat));

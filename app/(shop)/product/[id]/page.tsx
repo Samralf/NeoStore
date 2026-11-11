@@ -7,7 +7,7 @@ import {
   effectivePrice,
   setupSpecialPrice,
 } from "../../../../lib/product-pricing";
-import StoreProductGallery from "../../../../components/store-product-gallery";
+import StorefrontProduct from "../../../../components/storefront-product";
 import { setupCategories } from "../../../../lib/categories";
 import { publicSiteUrl } from "../../../../lib/site-url";
 import ProductAnalytics from "../../../../components/product-analytics";
@@ -92,7 +92,7 @@ export default async function ProductPage({
   const { id } = await params,
     p = await product(Number(id));
   if (!p) notFound();
-  const arabic = (await searchParams).lang === 'ar', lang = arabic ? 'ar' : 'en', name = arabic ? p.name_ar : p.name_en?.trim() || p.name_ar;
+  const arabic = (await searchParams).lang === 'ar', name = arabic ? p.name_ar : p.name_en?.trim() || p.name_ar;
   const gallery = await images(p.id),
     available = p.website_quantity > 0,
     origin = publicSiteUrl(),
@@ -116,59 +116,10 @@ export default async function ProductPage({
       },
     };
   return (
-    <main className="seo-product" dir={arabic ? "rtl" : "ltr"} lang={lang}>
+    <>
       <ProductAnalytics item={{item_id:String(p.id),item_name:name,price:effectivePrice(p),quantity:1}} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
-        }}
-      />
-      <header>
-        <a href={`/?lang=${lang}`} className="commerce-logo">
-          <i>N</i>
-          <span>
-            <b>NEO COFFEE</b>
-            <small>CURATED COFFEE STORE</small>
-          </span>
-        </a>
-        <a href={`/?lang=${lang}#products`}>{arabic ? "← العودة للمتجر" : "← Back to shop"}</a>
-      </header>
-      <section>
-        {gallery.length ? (
-          <StoreProductGallery images={gallery} name={name} />
-        ) : (
-          <div className="seo-image-placeholder">{p.code}</div>
-        )}
-        <article>
-          <small>{p.code}</small>
-          <h1>{name}</h1>
-          {p.variant && <p>{p.variant}</p>}
-          <div className="seo-product-price">
-            {effectivePrice(p) < Number(p.sale_price) && (
-              <del>{Number(p.sale_price).toLocaleString("en-EG")} {arabic ? "ج.م" : "EGP"}</del>
-            )}
-            <strong>{effectivePrice(p).toLocaleString("en-EG")} {arabic ? "ج.م" : "EGP"}</strong>
-          </div>
-          <div className={available ? "seo-stock in" : "seo-stock"}>
-            {available
-              ? (arabic ? `متوفر — ${p.website_quantity} قطعة` : `In stock — ${p.website_quantity} available`)
-              : (arabic ? "غير متوفر" : "Out of stock")}
-          </div>
-          {available ? (
-            <a className="seo-shop-button" href={`/?add=${p.id}&lang=${lang}#products`}>
-              {arabic ? "أضف للسلة" : "Add to cart"}
-            </a>
-          ) : (
-            <span className="seo-shop-button disabled">{arabic ? "غير متوفر" : "Out of stock"}</span>
-          )}
-          <ul>
-            <li>{arabic ? "منتج أصلي" : "Original product"}</li>
-            <li>{arabic ? "توصيل لجميع أنحاء مصر" : "Delivery across Egypt"}</li>
-            <li>{arabic ? "إتمام طلب آمن" : "Secure checkout"}</li>
-          </ul>
-        </article>
-      </section>
-    </main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(jsonLd).replace(/</g,"\\u003c")}} />
+      <StorefrontProduct id={p.id} name={name} code={p.code} detail={p.variant} price={effectivePrice(p)} originalPrice={Number(p.sale_price)} available={p.website_quantity} images={gallery} arabic={arabic}/>
+    </>
   );
 }

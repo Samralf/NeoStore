@@ -60,6 +60,7 @@ export default function Store() {
     [profile, setProfile] = useState(false);
   useEffect(() => {
     const selected = new URLSearchParams(window.location.search).get('lang');
+    if(new URLSearchParams(window.location.search).get('cart')==='1')setCartOpen(true);
     try { setLang(selected === 'ar' || selected === 'en' ? selected : localStorage.getItem('neo-store-language') === 'ar' ? 'ar' : 'en'); } catch { setLang(selected === 'ar' ? 'ar' : 'en'); }
   }, []);
   const rtl = lang === "ar";
@@ -93,7 +94,7 @@ export default function Store() {
   useEffect(() => {
     fetch("/api/store/account")
       .then((r) => r.json<{ user: StoreUser | null }>())
-      .then((d) => setUser(d.user));
+      .then((d) => {setUser(d.user);if(new URLSearchParams(location.search).get('account')==='1'){if(d.user)setProfile(true);else{setAccount(true);setOpen(true);}}}).catch(()=>{if(new URLSearchParams(location.search).get('account')==='1'){setAccount(true);setOpen(true);}});
   }, []);
   useEffect(() => {
     let active = true;
@@ -143,18 +144,18 @@ export default function Store() {
     return () => clearTimeout(timer);
   }, [items, cartLoaded, productsLoaded]);
   useEffect(() => {
-    if (processedProductLink.current || !items.length) return;
+    if (processedProductLink.current || !cartLoaded || !items.length) return;
     const id = Number(new URLSearchParams(location.search).get("add") || 0),
       product = items.find((item) => item.id === id);
     if (!product) return;
     const timer = setTimeout(() => {
       processedProductLink.current = true;
-      setCart((current) => ({ ...current, [id]: Math.min(1, product.available) }));
+      setCart((current) => ({ ...current, [id]: Math.min((current[id]||0)+1, product.available,50) }));
       setCartOpen(true);
       history.replaceState(null, "", "#products");
     }, 0);
     return () => clearTimeout(timer);
-  }, [items]);
+  }, [items,cartLoaded]);
   const count = Object.values(cart).reduce((a, b) => a + b, 0);
   useEffect(()=>{
     if(!productsLoaded) return;
