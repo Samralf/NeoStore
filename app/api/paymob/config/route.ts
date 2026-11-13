@@ -13,17 +13,17 @@ export async function GET(r:Request){
 export async function POST(r:Request){
  if(!originAllowed(r))return reply({error:'Invalid origin'},403);
  const version=await authVersion();
- if(!await isAuthenticated(r))return reply({error:'Unauthorized'},401);
- if(!(await consumeRateLimit('paymob-settings','owner',12,900)).allowed)return reply({error:'Too many attempts. Try again in 15 minutes.'},429);
+ if(!await isAuthenticated(r))return reply({error:'انتهت جلسة الدخول. سجّل دخول النظام مرة أخرى.'},401);
+ if(!(await consumeRateLimit('paymob-settings','owner',12,900)).allowed)return reply({error:'محاولات كثيرة. حاول مرة أخرى بعد 15 دقيقة.'},429);
  const raw=await r.text();if(raw.length>24000)return reply({error:'Request too large'},413);
  let b:Record<string,unknown>;try{b=JSON.parse(raw);}catch{return reply({error:'Invalid JSON'},400);}
- if(!b||typeof b.password!=='string'||b.password.length>256)return reply({error:'Enter your system password'},400);
- const hash=await currentPasswordHash();if(!hash||!await verifyPassword(b.password,hash))return reply({error:'Incorrect system password'},403);
+ if(!b||typeof b.password!=='string'||!b.password||b.password.length>256)return reply({error:'اكتب كلمة مرور نظام Neo Coffee.'},400);
+ const hash=await currentPasswordHash();if(!hash||!await verifyPassword(b.password,hash))return reply({error:'كلمة مرور النظام غير صحيحة. استخدم كلمة مرور دخول Neo Coffee وليس Paymob.'},403);
  if(version!==await authVersion())return reply({error:'Sign in again'},401);
  const previous=await paymobConfig();
  if(b.action==='test'){
-  if(!previous||previous.mode!=='test')return reply({error:'Save TEST credentials first'},409);
-  if(typeof b.phone!=='string'||!/^\+?20\d{10}$|^01[0125]\d{8}$/.test(b.phone)||typeof b.email!=='string'||b.email.length>254||!/^\S+@\S+\.\S+$/.test(b.email))return reply({error:'Enter a valid test phone and email'},400);
+  if(!previous||previous.mode!=='test')return reply({error:'احفظ مفاتيح Test أولًا قبل فتح الاختبار.'},409);
+  if(typeof b.phone!=='string'||!/^\+?20\d{10}$|^01[0125]\d{8}$/.test(b.phone)||typeof b.email!=='string'||b.email.length>254||!/^\S+@\S+\.\S+$/.test(b.email))return reply({error:'اكتب رقم موبايل مصري صحيح وإيميل صحيح في نموذج الاختبار.'},400);
   const id=await createPaymobAttempt(previous,'TEST-'+crypto.randomUUID(),10000,{name:'Neo Integration Test',phone:b.phone,email:b.email,address:'Test address',city:'Cairo'});
   return reply({url:'/payment/return?attempt='+id});
  }
