@@ -10,6 +10,7 @@ import OrderManager from "./order-manager";
 import ReportManager from "./report-manager";
 import PurchaseManager from "./purchase-manager";
 import PaymentSettings from "./payment-settings";
+import PaymobSettings from "./paymob-settings";
 import SalesManager from "./sales-manager";
 import DashboardManager from "./dashboard-manager";
 import GlobalSearch, { type SearchResult } from "./global-search";
@@ -170,6 +171,7 @@ export default function Home() {
             {view === "الإعدادات" && (
               <>
                 <PaymentSettings />
+                <PaymobSettings />
                 <SmsReport />
                 <SmsGatewayManager />
                 <AccountSettings />
