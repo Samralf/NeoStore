@@ -58,7 +58,7 @@ export default function CustomerManager({ initialId }: { initialId?: number }) {
       .finally(() => setLoading(false));
   }, [initialId]);
   const shown = rows.filter((c) =>
-    `${c.name} ${c.phone}`.toLowerCase().includes(query.toLowerCase()),
+    `${c.name} ${c.phone} ${c.email||''}`.toLowerCase().includes(query.trim().toLowerCase()),
   );
   async function openHistory() {
     if (!selected) return;
@@ -87,7 +87,7 @@ export default function CustomerManager({ initialId }: { initialId?: number }) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث بالاسم أو الهاتف"
+            placeholder="ابحث بالاسم أو الهاتف أو الإيميل"
           />
         </label>
       </div>
