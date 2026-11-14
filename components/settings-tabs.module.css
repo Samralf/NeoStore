@@ -1,0 +1,17 @@
+.settings{min-width:0;max-width:1400px;margin-inline:auto;color:#173c69}
+.intro{display:flex;gap:16px;align-items:center;padding:24px;background:linear-gradient(120deg,#fff,#edf5ff);border:1px solid #dbe6f3;border-radius:18px;margin-bottom:20px}
+.headingIcon{display:grid;place-items:center;flex:0 0 52px;height:52px;border-radius:14px;background:#dfeeff;color:#1858a0;font-size:27px}
+.intro h2{font-size:23px;margin:0 0 6px}.intro p,.topic p{margin:0;color:#5d7086;line-height:1.7;font-size:14px}
+.tablist{display:flex;gap:6px;overflow-x:auto;padding:7px;background:#eaf0f7;border:1px solid #dce5ef;border-radius:14px;scrollbar-width:thin}
+.tablist button{display:flex;flex:1 0 auto;align-items:center;justify-content:center;gap:9px;min-height:48px;padding:12px 18px;border:1px solid transparent;border-radius:10px;background:transparent;color:#465c76;font:inherit;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s}
+.tablist button:hover{background:#f7faff;color:#164e8c}.tablist button[aria-selected=true]{background:#fff;border-color:#c9d9ec;color:#1459a4;box-shadow:0 2px 5px #173c6910}
+.tablist button span{font-size:18px}.tablist button:focus-visible,.panel:focus-visible{outline:3px solid #357ccc;outline-offset:3px}
+.panel{margin-top:20px;min-width:0}.panel[hidden]{display:none!important}
+.topic{padding:4px 4px 18px}.topic h3{margin:0 0 5px;font-size:19px}.topic small{display:block;color:#6a7c91;margin-top:8px;font-size:12px}
+.panel :global(.card){border-radius:16px;box-shadow:0 3px 16px #173c6906}
+.panel label{min-width:0}.panel input:not([type=checkbox]):not([type=radio]),.panel select{max-width:100%;box-sizing:border-box}
+.panel :global(.payment-settings)>form label,.panel :global(.payment-settings)>div>label,.panel :global(.payment-settings)>div>form label{display:grid;gap:8px;font-size:14px;line-height:1.6}
+.panel :global(.payment-settings) input:not([type=file]){width:100%;min-height:46px;padding:10px 12px;border:1px solid #cbd9e8;border-radius:9px;background:#fff;color:#173c69}
+.panel :global(.payment-settings) input:focus{outline:2px solid #357ccc;outline-offset:2px}
+@media(max-width:700px){.intro{padding:18px;align-items:flex-start}.intro h2{font-size:20px}.headingIcon{flex-basis:42px;height:42px}.tablist button{padding:10px 14px}.panel{margin-top:16px}.panel :global(.toolbar){flex-wrap:wrap;gap:12px}.panel :global(.payment-toggle-list){grid-template-columns:1fr}.panel :global(.card){padding:18px}.topic small{line-height:1.7}}
+@media(prefers-reduced-motion:reduce){.tablist button{transition:none}}

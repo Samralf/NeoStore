@@ -3,19 +3,15 @@
 import { useEffect, useState } from "react";
 import AuthGate from "../app/auth-gate";
 import ProductManager from "./product-manager";
-import AccountSettings from "./account-settings";
+import SettingsTabs from "./settings-tabs";
 import CustomerManager from "./customer-manager";
 import ShippingManager from "./shipping-manager";
 import OrderManager from "./order-manager";
 import ReportManager from "./report-manager";
 import PurchaseManager from "./purchase-manager";
-import PaymentSettings from "./payment-settings";
-import PaymobSettings from "./paymob-settings";
 import SalesManager from "./sales-manager";
 import DashboardManager from "./dashboard-manager";
 import GlobalSearch, { type SearchResult } from "./global-search";
-import SmsGatewayManager from "./sms-gateway-manager";
-import SmsReport from "./sms-report";
 
 type View =
   | "الرئيسية"
@@ -169,13 +165,7 @@ export default function Home() {
             )}
             {view === "الشحن والعروض" && <ShippingManager />}
             {view === "الإعدادات" && (
-              <>
-                <PaymentSettings />
-                <PaymobSettings />
-                <SmsReport />
-                <SmsGatewayManager />
-                <AccountSettings />
-              </>
+              <SettingsTabs />
             )}
             {view === "العملاء" && (
               <CustomerManager
