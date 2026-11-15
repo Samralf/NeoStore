@@ -9,6 +9,9 @@ import {
 } from "../../../../lib/product-pricing";
 import { setupCategories } from "../../../../lib/categories";
 import { normalizePhone } from "../../../../lib/otp";
+import {emailReady,sendEmail,validEmail} from '../../../../lib/transactional-email';
+import {setupCustomerPasswords} from '../../../../lib/customer-password';
+import {setupGoogleAuth} from '../../../../lib/google-auth';
 type Line = { id: number; quantity: number };
 type Product = {
   id: number;
@@ -53,8 +56,10 @@ export async function POST(r: Request) {
   await setupOrders();
   await setupSpecialPrice();
   await setupCategories();
+  await setupCustomerPasswords();
+  await setupGoogleAuth();
   const customer = await customerId(r), verified = await verifiedPhone(r);
-  const customerRow=customer?await env.DB.prepare("SELECT phone,email FROM customers WHERE id=?").bind(customer).first<{phone:string;email:string}>():null;
+  const customerRow=customer?await env.DB.prepare("SELECT c.phone,COALESCE(NULLIF(c.email,''),p.login_email,g.email) email FROM customers c LEFT JOIN customer_passwords p ON p.customer_id=c.id LEFT JOIN google_accounts g ON g.customer_id=c.id WHERE c.id=?").bind(customer).first<{phone:string;email:string}>():null;
   if (!verified && !customerRow)
     return Response.json(
       { error: "OTP verification is required for this order" },
@@ -84,6 +89,8 @@ export async function POST(r: Request) {
       ([id, quantity]) => ({ id, quantity }),
     );
   if(!phone)return Response.json({error:"Enter a valid Egyptian mobile number for delivery"},{status:400});
+  const recipient=validEmail(customerRow?.email||'');
+  if(emailReady()&&!recipient)return Response.json({error:'Verify your email before placing an order'},{status:400});
   if (!lines.length)
     return Response.json({ error: "Cart is empty" }, { status: 400 });
   if (lines.some((line) => line.quantity > 50))
@@ -178,7 +185,7 @@ export async function POST(r: Request) {
       now,
       now,
       b.phone || phone,
-      customerRow?.email || null,
+      recipient,
       JSON.stringify({name:b.name,phone:b.phone||phone,governorate:b.governorate,address:b.address,paymentMethod:b.paymentMethod,items:lines}),
     ),
     ...lines.flatMap((x) => {
@@ -209,6 +216,18 @@ export async function POST(r: Request) {
       { error: stockChanged ? "Stock changed while placing the order. Review your cart." : "Could not save your order. Please try again or contact support." },
       { status: stockChanged ? 409 : 500 },
     );
+  }
+  // Keep the delivery mobile on a Google/email account for the next order.
+  // It is a contact number, not a verified phone-login credential.
+  if(customer)await env.DB.prepare("UPDATE customers SET phone=? WHERE id=? AND (phone IS NULL OR phone='')").bind(phone,customer).run();
+  if(recipient&&emailReady()){
+    const order=await env.DB.prepare('SELECT id FROM orders WHERE order_number=?').bind(number).first<{id:number}>();
+    if(order){
+      await env.DB.prepare("INSERT OR IGNORE INTO order_email_delivery(order_id,email,status,updated_at) VALUES(?,?,'pending',?)").bind(order.id,recipient,new Date().toISOString()).run();
+      const productsText=lines.map(line=>{const p=products.find(item=>item.id===line.id)!;return `${p.name_ar} × ${line.quantity}`;}).join('\n');
+      try{const sent=await sendEmail(recipient,`Neo Coffee order ${number} | طلبك من نيو كافي`,`تم تسجيل طلبك رقم ${number}\nOrder ${number} has been placed.\n\n${productsText}\n\nالإجمالي / Total: ${total} EGP\nالتوصيل / Delivery: ${gov[0]} - ${b.address}\nطريقة الدفع / Payment: ${payment}\n${payment==='instapay'?'الطلب في انتظار مراجعة إيصال التحويل.':'سنتواصل معك بشأن تجهيز الطلب.'}`);await env.DB.prepare("UPDATE order_email_delivery SET status='sent',provider_id=?,sent_at=?,updated_at=? WHERE order_id=?").bind(sent.messageId,new Date().toISOString(),new Date().toISOString(),order.id).run();}
+      catch{await env.DB.prepare("UPDATE order_email_delivery SET status='failed',updated_at=? WHERE order_id=?").bind(new Date().toISOString(),order.id).run();}
+    }
   }
   return Response.json({
     ok: true,

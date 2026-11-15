@@ -9,6 +9,7 @@ type Order = {
   verified_phone: string;
   delivery_phone?: string | null;
   customer_email?: string | null;
+  email_delivery_status?:string|null;
   governorate_name: string;
   delivery_address: string;
   status: string;
@@ -118,6 +119,7 @@ export default function OrderManager({ initialId }: { initialId?: number }) {
     }else throw new Error('تعذر تحميل تفاصيل الطلب');
     }catch(reason){setError(reason instanceof Error?reason.message:'تعذر الاتصال');}finally{setOpening(false);}
   }
+  async function resendEmail(){if(!selected)return;setSaving(true);setError('');try{const r=await fetch('/api/orders/email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:selected.order.id})});const d=await r.json<{error?:string}>();if(!r.ok)throw Error(d.error||'تعذر إرسال الإيميل');await open(selected.order.id);}catch(reason){setError(reason instanceof Error?reason.message:'تعذر إرسال الإيميل');}finally{setSaving(false);}}
   async function save() {
     if (!selected) return;
     if(draftStatus==='cancelled'&&selected.order.status!=='cancelled'&&!window.confirm('إلغاء الطلب وإعادة الكميات المحجوزة للمخزون؟'))return;
@@ -262,6 +264,7 @@ export default function OrderManager({ initialId }: { initialId?: number }) {
           <p>{new Date(selected.order.created_at).toLocaleString("ar-EG")}</p>
           <span className={styles.badge}>{statusLabel[selected.order.status]}</span>
           <h3>بيانات العميل وقت الطلب</h3>
+          {selected.order.customer_email&&<p>إيميل تأكيد الطلب: {selected.order.email_delivery_status==='sent'?'تم إرساله إلى خدمة البريد':selected.order.email_delivery_status==='failed'?'تعذر الإرسال':selected.order.email_delivery_status==='pending'?'في انتظار الإرسال':'لم يُرسل بعد'}{selected.order.email_delivery_status!=='sent'&&<button className="secondary" disabled={saving} onClick={()=>void resendEmail()}>إعادة إرسال التأكيد</button>}</p>}
           <p className={styles.snapshotNote}>بيانات محفوظة مع الطلب للرجوع إليها حتى بعد تغيير بيانات الحساب.</p>
           <div className="customer-order-info">
             <div>

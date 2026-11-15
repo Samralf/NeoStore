@@ -6,8 +6,10 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "PUBLIC_SITE_URL": "https://neocoffeestore.com",
-    "GA_MEASUREMENT_ID": "G-GKKJ5PNVZD"
+    "GA_MEASUREMENT_ID": "G-GKKJ5PNVZD",
+    "TRANSACTIONAL_EMAIL_FROM": "orders@neocoffeestore.com"
   },
+  "send_email": [{ "name": "EMAIL" }],
   "assets": { "directory": "dist/client" },
   "routes": [
     {

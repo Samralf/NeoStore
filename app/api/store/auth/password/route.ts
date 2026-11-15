@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { customerCookie, customerCookieHeader, customerId, verifiedPhone } from '../../../../../lib/customer-session';
+import { customerCookie, customerCookieHeader, customerId, verifiedPhone, verifiedEmail } from '../../../../../lib/customer-session';
 import { setupCustomerPasswords, hashCustomerPassword, checkCustomerPassword } from '../../../../../lib/customer-password';
 import { normalizePhone } from '../../../../../lib/otp';
 import { clientIp, consumeRateLimit } from '../../../../../lib/security';
@@ -55,7 +55,9 @@ export async function PUT(request: Request) {
   const existing=await env.DB.prepare('SELECT password_hash FROM customer_passwords WHERE customer_id=?').bind(id).first<{password_hash:string}>();
   const phone=await env.DB.prepare('SELECT phone FROM customer_accounts WHERE customer_id=?').bind(id).first<{phone:string}>();
   const recentVerifiedPhone=await verifiedPhone(request);
-  const recovery=!!phone?.phone&&recentVerifiedPhone===phone.phone;
+  const recentVerifiedEmail=await verifiedEmail(request);
+  const accountEmail=await env.DB.prepare('SELECT COALESCE(NULLIF(c.email,\'\'),p.login_email,g.email) email FROM customers c LEFT JOIN customer_passwords p ON p.customer_id=c.id LEFT JOIN google_accounts g ON g.customer_id=c.id WHERE c.id=?').bind(id).first<{email:string}>();
+  const recovery=(!!phone?.phone&&recentVerifiedPhone===phone.phone)||(!!accountEmail?.email&&recentVerifiedEmail===accountEmail.email.toLowerCase());
   if (existing && !recovery && !await checkCustomerPassword(body.currentPassword||'',existing.password_hash)) return reply({error:'Current password or recent mobile verification is required'},403);
   if (!email && !phone) return reply({error:'Enter an email for password login'},400);
   const hash=await hashCustomerPassword(body.password);
