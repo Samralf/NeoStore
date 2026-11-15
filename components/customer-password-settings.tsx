@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, type FormEvent } from 'react';
 
-export default function CustomerPasswordSettings({arabic}:{arabic:boolean}) {
+export default function CustomerPasswordSettings({arabic,recovery=false}:{arabic:boolean;recovery?:boolean}) {
   const tr=(en:string,ar:string)=>arabic?ar:en;
   const [email,setEmail]=useState(''),[phone,setPhone]=useState(''),[hasPassword,setHasPassword]=useState(false);
   const [password,setPassword]=useState(''),[current,setCurrent]=useState(''),[confirm,setConfirm]=useState('');
@@ -28,7 +28,7 @@ export default function CustomerPasswordSettings({arabic}:{arabic:boolean}) {
     {phone&&<p>{tr('Verified login mobile: ','موبايل الدخول المؤكد: ')}<b dir="ltr">{phone}</b></p>}
     <form className="profile-form" onSubmit={save}>
       <label>{tr('Login email','إيميل تسجيل الدخول')}<input type="email" autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)} required={!phone} maxLength={254}/></label>
-      {hasPassword&&<label>{tr('Current password','كلمة المرور الحالية')}<input type="password" autoComplete="current-password" value={current} onChange={e=>setCurrent(e.target.value)} required maxLength={128}/></label>}
+    {hasPassword&&!recovery&&<label>{tr('Current password (or verify your mobile again)','كلمة المرور الحالية (أو أكّد موبايلك مجددًا)')}<input type="password" autoComplete="current-password" value={current} onChange={e=>setCurrent(e.target.value)} required maxLength={128}/></label>}
       <label>{tr('New password (at least 12 characters)','كلمة مرور جديدة (12 حرفًا على الأقل)')}<input type="password" autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={12} maxLength={128}/></label>
       <label>{tr('Confirm password','تأكيد كلمة المرور')}<input type="password" autoComplete="new-password" value={confirm} onChange={e=>setConfirm(e.target.value)} required minLength={12} maxLength={128}/></label>
       {error&&<div role="alert" className="form-error">{error}</div>}{saved&&<div role="status" className="form-success">{tr('Password saved. Use your login email or verified mobile next time.','تم حفظ كلمة المرور. استخدم إيميل الدخول أو موبايلك المؤكد في المرة القادمة.')}</div>}

@@ -57,7 +57,8 @@ export default function Store() {
       phone: string;
     } | null>(null),
     [user, setUser] = useState<StoreUser | null>(null),
-    [profile, setProfile] = useState(false);
+    [profile, setProfile] = useState(false),
+    [googleLoginError,setGoogleLoginError]=useState('');
   useEffect(() => {
     const selected = new URLSearchParams(window.location.search).get('lang');
     if(new URLSearchParams(window.location.search).get('cart')==='1')setCartOpen(true);
@@ -92,9 +93,12 @@ export default function Store() {
       localStorage.setItem("neo-store-cart", JSON.stringify(cart));
   }, [cart, cartLoaded]);
   useEffect(() => {
+    const params=new URLSearchParams(location.search);
+    const googleError=params.get('google_error');
+    if(googleError){setGoogleLoginError(googleError);setAccount(true);setOpen(true);history.replaceState(null,'',location.pathname);}
     fetch("/api/store/account")
       .then((r) => r.json<{ user: StoreUser | null }>())
-      .then((d) => {setUser(d.user);if(new URLSearchParams(location.search).get('account')==='1'){if(d.user)setProfile(true);else{setAccount(true);setOpen(true);}}}).catch(()=>{if(new URLSearchParams(location.search).get('account')==='1'){setAccount(true);setOpen(true);}});
+      .then((d) => {setUser(d.user);if(new URLSearchParams(location.search).get('account')==='1'){if(d.user)setProfile(true);else{setAccount(true);setOpen(true);}}else{try{const destination=sessionStorage.getItem('neo-google-return');sessionStorage.removeItem('neo-google-return');if(destination==='checkout'&&d.user){const saved=sessionStorage.getItem('neo-checkout-draft');if(saved){setDraft(JSON.parse(saved));setAccount(false);setOpen(true);}}else if(destination==='account'){if(d.user)setProfile(true);else{setAccount(true);setOpen(true);}}}catch{}}}).catch(()=>{if(new URLSearchParams(location.search).get('account')==='1'||googleError){setAccount(true);setOpen(true);}});
   }, []);
   useEffect(() => {
     let active = true;
@@ -206,6 +210,7 @@ export default function Store() {
     });
     setCart({});
     setDraft(null);
+    try{sessionStorage.removeItem('neo-checkout-draft');}catch{}
     return {
       orderNumber: d.orderNumber as string,
       paymentMethod: d.paymentMethod as string,
@@ -257,6 +262,7 @@ export default function Store() {
             trackEvent('begin_checkout',{currency:'EGP',value:items.reduce((sum,p)=>sum+p.price*(cart[p.id]||0),0),items:items.filter(p=>cart[p.id]>0).map(p=>analyticsItem(p,cart[p.id]))});
             trackEvent('add_payment_info',{currency:'EGP',payment_type:data.paymentMethod,items:items.filter(p=>cart[p.id]>0).map(p=>analyticsItem(p,cart[p.id]))});
             setDraft(data);
+            try{sessionStorage.setItem('neo-checkout-draft',JSON.stringify(data));}catch{}
             setCartOpen(false);
             setAccount(!user);
             setOpen(true);
@@ -270,6 +276,7 @@ export default function Store() {
           close={() => setOpen(false)}
           onLogin={setUser}
           authenticated={Boolean(user)}
+          loginError={googleLoginError}
           onVerified={draft ? createOrder : undefined}
         />
       )}{" "}
