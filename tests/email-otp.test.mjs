@@ -22,9 +22,11 @@ test('Cloudflare email code is sent, stored hashed, and consumed once',async()=>
  const code=sent.text.match(/\b\d{6}\b/)[0];assert.equal(sent.to,'x@example.com');
  assert.ok(!db.prepare('SELECT code_hash FROM email_otp').get().code_hash.includes(code));
  assert.equal((await api.PUT(request('PUT',{email:'x@example.com',code:'000000'}))).status,400);
- const verified=await api.PUT(request('PUT',{email:'x@example.com',code}));assert.equal(verified.status,200);assert.equal((await verified.json()).user.email,'x@example.com');
+ const verified=await api.PUT(request('PUT',{email:'x@example.com',code}));assert.equal(verified.status,200);const result=await verified.json();assert.equal(result.user.email,'x@example.com');assert.equal(result.created,true);
  assert.match(verified.headers.get('set-cookie'),/neo_customer=/);
  assert.equal((await api.PUT(request('PUT',{email:'x@example.com',code}))).status,400);
+ assert.equal((await api.POST(request('POST',{email:'x@example.com'}))).status,200);
+ const existingCode=sent.text.match(/\b\d{6}\b/)[0];const again=await api.PUT(request('PUT',{email:'x@example.com',code:existingCode}));assert.equal((await again.json()).created,false);
 });
 test('provider failure invalidates unsent codes',async()=>{
  fail=true;const r=await api.POST(request('POST',{email:'other@example.com'}));assert.equal(r.status,503);

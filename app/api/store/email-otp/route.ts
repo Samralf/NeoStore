@@ -37,9 +37,10 @@ export async function PUT(request:Request){
  let customer=await env.DB.prepare('SELECT customer_id id FROM customer_passwords WHERE login_email=?').bind(email).first<{id:number}>();
  if(!customer)customer=await env.DB.prepare('SELECT customer_id id FROM google_accounts WHERE email=?').bind(email).first<{id:number}>();
  if(!customer)customer=await env.DB.prepare('SELECT id FROM customers WHERE email=? ORDER BY id DESC LIMIT 1').bind(email).first<{id:number}>();
+ const created=!customer;
  if(!customer)customer=await env.DB.prepare('INSERT INTO customers(name,phone,email,created_at) VALUES(?,?,?,?) RETURNING id').bind(body?.name?.trim().slice(0,120)||email.split('@')[0],'',email,now).first<{id:number}>();
  if(!customer)return reply({error:'Could not create account'},500);
  const user=await env.DB.prepare('SELECT id,name,phone,email FROM customers WHERE id=?').bind(customer.id).first();
  const headers=new Headers({'cache-control':'no-store'});headers.append('set-cookie',customerCookieHeader(await customerCookie(customer.id),request));headers.append('set-cookie',verifiedEmailHeader(await verifiedEmailCookie(email),request));
- return Response.json({ok:true,user},{headers});
+ return Response.json({ok:true,user,created},{headers});
 }
