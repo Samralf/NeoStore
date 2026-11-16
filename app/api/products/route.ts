@@ -28,7 +28,7 @@ type Input = {
   visibleOnWebsite?: boolean;
 };
 
-async function setup() {
+export async function setupProducts() {
   await env.DB.batch([
     env.DB.prepare(
       `CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT NOT NULL UNIQUE,barcode TEXT UNIQUE,name_ar TEXT NOT NULL,name_en TEXT,variant TEXT,purchase_price REAL NOT NULL DEFAULT 0,operating_cost REAL NOT NULL DEFAULT 0,sale_price REAL NOT NULL DEFAULT 0,stock_quantity INTEGER NOT NULL DEFAULT 0,reserved_quantity INTEGER NOT NULL DEFAULT 0,website_quantity INTEGER NOT NULL DEFAULT 0,minimum_stock INTEGER NOT NULL DEFAULT 0,visible_on_website INTEGER NOT NULL DEFAULT 0,archived INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)`,
@@ -55,7 +55,7 @@ async function setup() {
 export async function GET(request: Request) {
   if (!(await isAuthenticated(request)))
     return Response.json({ error: "غير مصرح" }, { status: 401 });
-  await setup();
+  await setupProducts();
   const rows = await env.DB.prepare(
     `SELECT p.*, (SELECT MIN(expiry_date) FROM inventory_batches b WHERE b.product_id=p.id AND b.remaining_quantity>0) nearest_expiry FROM products p WHERE archived=0 ORDER BY id DESC`,
   ).all();
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if (!(await isAuthenticated(request)))
     return Response.json({ error: "غير مصرح" }, { status: 401 });
-  await setup();
+  await setupProducts();
   const body = await request.json<Input>();
   if (!body.code?.trim() || !body.nameAr?.trim())
     return Response.json(
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   if (!(await isAuthenticated(request)))
     return Response.json({ error: "غير مصرح" }, { status: 401 });
-  await setup();
+  await setupProducts();
   const body = await request.json<Input>();
   if (!body.id || !body.nameAr?.trim())
     return Response.json({ error: "بيانات الصنف غير مكتملة" }, { status: 400 });
@@ -175,7 +175,7 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   if (!(await isAuthenticated(request)))
     return Response.json({ error: "غير مصرح" }, { status: 401 });
-  await setup();
+  await setupProducts();
   const id = Number(new URL(request.url).searchParams.get("id"));
   if (!id)
     return Response.json({ error: "رقم الصنف غير صحيح" }, { status: 400 });

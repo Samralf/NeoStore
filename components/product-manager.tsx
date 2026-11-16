@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import ProductImages from "./product-images";
 import BarcodePrinter from "./barcode-printer";
 import CategoryManager from "./category-manager";
+import ProductBulkImport from "./product-bulk-import";
 
 type Product = {
   id: number;
@@ -152,6 +153,7 @@ export default function ProductManager({ initialId }: { initialId?: number }) {
   return (
     <section className="page card">
       <CategoryManager />
+      <ProductBulkImport onDone={load} />
       <div className="toolbar">
         <div>
           <h2>الأصناف والمخزون</h2>
