@@ -6,12 +6,14 @@ import PaymobSettings from './paymob-settings';
 import SmsGatewayManager from './sms-gateway-manager';
 import SmsReport from './sms-report';
 import AccountSettings from './account-settings';
+import EmailSettings from './email-settings';
 import styles from './settings-tabs.module.css';
 
 const topics = [
   {id:'payments', title:'طرق الدفع', note:'الدفع عند الاستلام وإنستاباي وطرق الدفع المتاحة للعملاء', icon:'▣', Component:PaymentSettings},
   {id:'paymob', title:'ربط Paymob', note:'مفاتيح الربط وإعدادات واختبارات بوابة الدفع', icon:'↗', Component:PaymobSettings},
   {id:'messages', title:'بوابة الرسائل', note:'اتصال بوابة OTP ومتابعة الإرسال والأرقام المحظورة', icon:'✉', Component:SmsGatewayManager},
+  {id:'email', title:'البريد الإلكتروني', note:'كتابة الرسائل وإرسالها ومراجعة سجل الإرسال', icon:'@', Component:EmailSettings},
   {id:'message-reports', title:'تقارير الرسائل', note:'عدد الرسائل وحالات الإرسال خلال الفترة المحددة', icon:'▤', Component:SmsReport},
   {id:'account', title:'الحساب والأمان', note:'كلمة المرور والمصادقة الثنائية والنسخ الاحتياطي وسجل الأمان', icon:'◇', Component:AccountSettings},
 ];

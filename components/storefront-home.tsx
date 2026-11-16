@@ -43,6 +43,12 @@ export default function StorefrontHome(props:Props){
    <div className="neo-hero-copy"><p className="neo-eyebrow"><span/> {t('THE EVERYDAY, ELEVATED','لحظتك اليومية، بطعم مختلف')}</p>
     <h1 id="neo-hero-title">{t('Good mornings','صباحك أحلى')}<br/><em>{t('start here.','مع قهوتك.')}</em></h1>
     <p className="neo-hero-lead">{t('Exceptional coffee. Beautiful tools. Everything you need to make your daily ritual a little more extraordinary.','قهوة مميزة وأدوات تختارها بعناية. كل ما تحتاجه لتجعل لحظة قهوتك اليومية أجمل.')}</p>
+    {/* A visible search keeps product discovery one step away on every screen size. */}
+    <form className="neo-hero-search" role="search" onSubmit={event=>{event.preventDefault();document.getElementById('products')?.scrollIntoView({behavior:'smooth'});}}>
+     <StoreIcon name="search" width="20" height="20"/><label className="neo-sr" htmlFor="neo-home-product-search">{t('Search products','ابحث عن منتج')}</label>
+     <input id="neo-home-product-search" type="search" value={search} onChange={event=>{setSearch(event.target.value);setCategory('all');}} placeholder={t('Search coffee, grinders and tools','ابحث عن قهوة أو مطحنة أو أدوات')} autoComplete="off"/>
+     <button type="submit">{t('Search','بحث')}</button>
+    </form>
     <div className="neo-hero-actions"><a className="neo-button" href="#coffee">{t('Shop Coffee','تسوق القهوة')}<StoreIcon name="arrow"/></a><a className="neo-button neo-button-outline" href="#equipment">{t('Explore Grinders & Tools','اكتشف المطاحن والأدوات')}</a></div>
     <div className="neo-hero-foot"><span className="neo-line"/><p>{t('CURATED WITH CARE. BREWED YOUR WAY.','نختارها بعناية. وتحضرها على ذوقك.')}</p></div>
    </div>
