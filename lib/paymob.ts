@@ -19,6 +19,7 @@ export async function setupPaymob(){ready??=(async()=>{
  await env.DB.batch([
   env.DB.prepare("CREATE TABLE IF NOT EXISTS paymob_attempts(id TEXT PRIMARY KEY,order_id INTEGER UNIQUE,reference TEXT NOT NULL,amount_cents INTEGER NOT NULL,mode TEXT NOT NULL,state TEXT NOT NULL,integration_ids TEXT NOT NULL,hmac_cipher TEXT NOT NULL,provider_order_id TEXT UNIQUE,intention_id TEXT,checkout_cipher TEXT,expires_at INTEGER NOT NULL,transaction_id TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL)"),
   env.DB.prepare('CREATE TABLE IF NOT EXISTS paymob_events(event_key TEXT PRIMARY KEY,attempt_id TEXT NOT NULL,transaction_id TEXT NOT NULL,result TEXT NOT NULL,mutation_token TEXT NOT NULL,created_at TEXT NOT NULL)'),
+  env.DB.prepare('CREATE TABLE IF NOT EXISTS paymob_diagnostics(attempt_id TEXT PRIMARY KEY,http_status INTEGER,reason TEXT NOT NULL,created_at TEXT NOT NULL)'),
   env.DB.prepare("CREATE TRIGGER IF NOT EXISTS paymob_amount_lock BEFORE UPDATE OF total,payment_method ON orders WHEN EXISTS(SELECT 1 FROM paymob_attempts WHERE order_id=OLD.id) AND (NEW.total<>OLD.total OR NEW.payment_method<>OLD.payment_method) BEGIN SELECT RAISE(ABORT,'Paymob amount is locked'); END"),
  ]);
 })();try{await ready;}catch(e){ready=undefined;throw e;}}
@@ -46,12 +47,20 @@ export async function createPaymobAttempt(config:PaymobConfig,reference:string,a
  try{
   const names=billing.name.trim().split(/\s+/);
   const response=await fetch(base+'/v1/intention/',{method:'POST',headers:{Authorization:`Token ${config.secretKey}`,'content-type':'application/json'},signal:AbortSignal.timeout(20000),body:JSON.stringify({amount:amountCents,currency:'EGP',payment_methods:config.integrationIds,special_reference:reference,expiration:3600,billing_data:{first_name:names[0]||'Customer',last_name:names.slice(1).join(' ')||'Customer',phone_number:billing.phone,email:billing.email||'NA',street:billing.address,city:billing.city,state:billing.city,country:'EGY',building:'NA',floor:'NA',apartment:'NA',postal_code:'NA'},notification_url:origin+'/api/paymob/webhook',redirection_url:origin+'/payment/return?attempt='+id})});
-  if(!response.ok)throw new Error('Provider rejected intention');
+  if(!response.ok){
+   const payload=await response.json().catch(()=>null) as Record<string,unknown>|null;
+   // Keep only short validation text; never persist provider payloads, credentials or billing data.
+   const values=[payload?.detail,payload?.message,payload?.error,payload?.errors].flatMap(value=>typeof value==='string'?[value]:value&&typeof value==='object'?Object.entries(value).map(([field,detail])=>`${field}: ${typeof detail==='string'?detail:Array.isArray(detail)?detail.filter(v=>typeof v==='string').join(', '):''}`):[]);
+   const reason=values.join('; ').replace(/(?:egy_)?(?:sk|pk)_(?:test|live)_\S+/gi,'[redacted]').replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g,'[email]').replace(/\b\d{10,}\b/g,'[number]').slice(0,350)||'Paymob rejected Create Intention';
+   await env.DB.prepare('INSERT OR REPLACE INTO paymob_diagnostics(attempt_id,http_status,reason,created_at) VALUES(?,?,?,?)').bind(id,response.status,reason,new Date().toISOString()).run();
+   throw new Error('Provider rejected intention');
+  }
   const data=await response.json<{id?:string;client_secret?:string;intention_order_id?:number}>();
   if(!data.id||!data.client_secret||!Number.isSafeInteger(data.intention_order_id))throw new Error('Invalid intention response');
   const checkout=base+'/unifiedcheckout/?'+new URLSearchParams({publicKey:config.publicKey,clientSecret:data.client_secret});
   await env.DB.prepare("UPDATE paymob_attempts SET state='ready',provider_order_id=?,intention_id=?,checkout_cipher=?,updated_at=? WHERE id=? AND state='creating'").bind(String(data.intention_order_id),data.id,await seal(checkout),new Date().toISOString(),id).run();
- }catch{
+ }catch(error){
+  if(!(await env.DB.prepare('SELECT attempt_id FROM paymob_diagnostics WHERE attempt_id=?').bind(id).first()))await env.DB.prepare('INSERT INTO paymob_diagnostics(attempt_id,http_status,reason,created_at) VALUES(?,?,?,?)').bind(id,null,error instanceof Error&&error.name==='TimeoutError'?'Paymob connection timed out':'Paymob connection or response failed',new Date().toISOString()).run();
   await env.DB.prepare("UPDATE paymob_attempts SET state='error',updated_at=? WHERE id=? AND state='creating'").bind(new Date().toISOString(),id).run();
  }
  return id;

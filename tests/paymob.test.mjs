@@ -48,6 +48,15 @@ test('test intention uses saved server-side amount and encrypted checkout, witho
  const a=db.prepare('SELECT * FROM paymob_attempts WHERE id=?').get(attempt);assert.equal(a.state,'ready');assert.ok(!a.checkout_cipher.includes('private-client-secret'));
  assert.equal((await status.GET(new Request('https://neo.example/api/paymob/status?attempt='+attempt))).status,401);
 });
+test('rejected intention shows a safe provider diagnostic to the signed-in owner',async()=>{
+ globalThis.fetch=async()=>Response.json({errors:{payment_methods:['Invalid integration IDs']}},{status:400});
+ const response=await config.POST(request({action:'test',password,phone:'01012345678',email:'test@example.com'}));
+ const id=new URL((await response.json()).url,'https://neo.example').searchParams.get('attempt');
+ const result=await (await status.GET(new Request('https://neo.example/api/paymob/status?attempt='+id,{headers:{cookie}}))).json();
+ assert.equal(result.state,'error');assert.equal(result.diagnostic.http_status,400);
+ assert.match(result.diagnostic.reason,/payment_methods: Invalid integration IDs/);
+ assert.equal(result.checkoutUrl,null);
+});
 const obj={amount_cents:10000,created_at:'2026-11-13T10:00:00',currency:'EGP',error_occured:false,has_parent_transaction:false,id:1001,integration_id:123,is_3d_secure:true,is_auth:false,is_capture:false,is_refunded:false,is_standalone_payment:true,is_voided:false,order:{id:765},owner:44,pending:false,source_data:{pan:'2346',sub_type:'MasterCard',type:'card'},success:true};
 function signed(o){const values=[o.amount_cents,o.created_at,o.currency,o.error_occured,o.has_parent_transaction,o.id,o.integration_id,o.is_3d_secure,o.is_auth,o.is_capture,o.is_refunded,o.is_standalone_payment,o.is_voided,o.order.id,o.owner,o.pending,o.source_data.pan,o.source_data.sub_type,o.source_data.type,o.success];return createHmac('sha512',credentials.hmacSecret).update(values.join('')).digest('hex');}
 const callback=(o,signature=signed(o))=>new Request('https://neo.example/api/paymob/webhook?hmac='+signature,{method:'POST',body:JSON.stringify({type:'TRANSACTION',obj:o})});
