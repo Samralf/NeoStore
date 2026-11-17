@@ -3,6 +3,7 @@ import {useEffect,useState} from 'react';
 import StorefrontHeader from './storefront-header';
 import StoreProductGallery from './store-product-gallery';
 import {StoreIcon} from './storefront-icons';
+import StockAlertForm from './stock-alert-form';
 import './storefront.css';
 import './storefront-product.css';
 
@@ -31,7 +32,7 @@ export default function StorefrontProduct(p:Props){
      {p.detail&&<p className="neo-detail-description">{p.detail}</p>}
      <div className="neo-detail-price">{p.price<p.originalPrice&&<del>{p.originalPrice.toLocaleString('en-EG')} {t('EGP','ج.م')}</del>}<strong>{p.price.toLocaleString('en-EG')} <small>{t('EGP','ج.م')}</small></strong>{p.price<p.originalPrice&&<span>{t('Special price','سعر خاص')}</span>}</div>
      {freeShipping&&<p className="neo-detail-delivery"><StoreIcon name="truck"/>{t('Free shipping offer is active','عرض الشحن المجاني متاح')}</p>}
-     {p.available>0?<a className="neo-button neo-detail-buy" href={`${home}&add=${p.id}#products`}><StoreIcon name="bag"/>{t('Add to bag','أضف للسلة')}<StoreIcon name="arrow"/></a>:<button className="neo-button neo-detail-buy" disabled>{t('Out of stock','غير متوفر')}</button>}
+     {p.available>0?<a className="neo-button neo-detail-buy" href={`${home}&add=${p.id}#products`}><StoreIcon name="bag"/>{t('Add to bag','أضف للسلة')}<StoreIcon name="arrow"/></a>:<StockAlertForm productId={p.id} arabic={p.arabic}/>}
      <p className="neo-detail-help">{t('Not sure this is the one?','محتاج مساعدة في الاختيار؟')} <a href="https://wa.me/201148141496" target="_blank" rel="noreferrer">{t('Ask our coffee team','اسأل فريق القهوة')}</a></p>
      <div className="neo-detail-values"><div><StoreIcon name="check"/><span>{t('Authentic products','منتجات أصلية')}</span></div><div><StoreIcon name="truck"/><span>{t('Delivery across Egypt','توصيل لكل مصر')}</span></div><div><StoreIcon name="chat"/><span>{t('Expert coffee support','مساعدة من فريق القهوة')}</span></div></div>
      <details className="neo-detail-faq"><summary>{t('Delivery & support','التوصيل والدعم')}</summary><p>{t('Delivery charges are shown at checkout for your governorate. Contact our team on WhatsApp for product guidance and delivery questions.','تكلفة التوصيل بتظهر عند الدفع حسب محافظتك. تواصل مع فريقنا على واتساب للاستفسار عن المنتج والتوصيل.')}</p></details>

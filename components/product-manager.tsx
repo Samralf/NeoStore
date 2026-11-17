@@ -22,6 +22,7 @@ type Product = {
   website_quantity: number;
   minimum_stock: number;
   visible_on_website: number;
+  show_when_out_of_stock: number;
   nearest_expiry: string | null;
 };
 const empty = {
@@ -39,6 +40,7 @@ const empty = {
   websiteQuantity: 0,
   minimumStock: 5,
   visibleOnWebsite: true,
+  showWhenOutOfStock: false,
   expiryDate: "",
   batchNumber: "",
 };
@@ -121,6 +123,7 @@ export default function ProductManager({ initialId }: { initialId?: number }) {
       expiryDate: String(f.get("expiryDate")),
       batchNumber: String(f.get("batchNumber")),
       visibleOnWebsite: f.get("visibleOnWebsite") === "on",
+      showWhenOutOfStock: f.get("showWhenOutOfStock") === "on",
     };
     const r = await fetch("/api/products", {
       method: editing ? "PATCH" : "POST",
@@ -362,6 +365,7 @@ function ProductForm({
         websiteQuantity: item.website_quantity,
         minimumStock: item.minimum_stock,
         visibleOnWebsite: Boolean(item.visible_on_website),
+        showWhenOutOfStock: Boolean(item.show_when_out_of_stock),
         expiryDate: "",
         batchNumber: "",
       }
@@ -509,6 +513,10 @@ function ProductForm({
               defaultChecked={values.visibleOnWebsite}
             />{" "}
             إظهار الصنف على الموقع الرسمي
+          </label>
+          <label className="check wide">
+            <input name="showWhenOutOfStock" type="checkbox" defaultChecked={values.showWhenOutOfStock} />{" "}
+            عرض المنتج عند نفاد مخزون الموقع مع زر «بلغني لما يتوفر»
           </label>
         </div>
         <div className="form-actions">

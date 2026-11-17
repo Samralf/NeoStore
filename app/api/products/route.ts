@@ -26,6 +26,7 @@ type Input = {
   expiryDate?: string;
   batchNumber?: string;
   visibleOnWebsite?: boolean;
+  showWhenOutOfStock?: boolean;
 };
 
 export async function setupProducts() {
@@ -49,6 +50,8 @@ export async function setupProducts() {
     ).run();
   if (!columns.results.some((c) => c.name === "name_en"))
     await env.DB.prepare("ALTER TABLE products ADD COLUMN name_en TEXT").run();
+  if (!columns.results.some((c) => c.name === "show_when_out_of_stock"))
+    await env.DB.prepare("ALTER TABLE products ADD COLUMN show_when_out_of_stock INTEGER NOT NULL DEFAULT 0").run();
   await setupSpecialPrice();
   await setupCategories();
 }
@@ -82,7 +85,7 @@ export async function POST(request: Request) {
         .first<{ slug: string }>(),
       category = selectedCategory?.slug || "coffee",
       row = await env.DB.prepare(
-        `INSERT INTO products (code,barcode,name_ar,name_en,category,variant,purchase_price,operating_cost,sale_price,special_price,stock_quantity,website_quantity,minimum_stock,visible_on_website,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`,
+        `INSERT INTO products (code,barcode,name_ar,name_en,category,variant,purchase_price,operating_cost,sale_price,special_price,stock_quantity,website_quantity,minimum_stock,visible_on_website,show_when_out_of_stock,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id`,
       )
         .bind(
           body.code.trim(),
@@ -99,6 +102,7 @@ export async function POST(request: Request) {
           web,
           Number(body.minimumStock || 0),
           body.visibleOnWebsite ? 1 : 0,
+          body.showWhenOutOfStock ? 1 : 0,
           now,
           now,
         )
@@ -143,7 +147,7 @@ export async function PATCH(request: Request) {
     category = selectedCategory?.slug || "coffee";
   try {
     await env.DB.prepare(
-      "UPDATE products SET barcode=?,name_ar=?,name_en=?,category=?,variant=?,purchase_price=?,operating_cost=?,sale_price=?,special_price=?,stock_quantity=?,website_quantity=?,minimum_stock=?,visible_on_website=?,updated_at=? WHERE id=?",
+      "UPDATE products SET barcode=?,name_ar=?,name_en=?,category=?,variant=?,purchase_price=?,operating_cost=?,sale_price=?,special_price=?,stock_quantity=?,website_quantity=?,minimum_stock=?,visible_on_website=?,show_when_out_of_stock=?,updated_at=? WHERE id=?",
     )
       .bind(
         body.barcode?.trim() || null,
@@ -159,6 +163,7 @@ export async function PATCH(request: Request) {
         web,
         Number(body.minimumStock || 0),
         body.visibleOnWebsite ? 1 : 0,
+        body.showWhenOutOfStock ? 1 : 0,
         new Date().toISOString(),
         body.id,
       )

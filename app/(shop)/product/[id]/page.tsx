@@ -11,6 +11,7 @@ import StorefrontProduct from "../../../../components/storefront-product";
 import { setupCategories } from "../../../../lib/categories";
 import { publicSiteUrl } from "../../../../lib/site-url";
 import ProductAnalytics from "../../../../components/product-analytics";
+import { setupProducts } from "../../../api/products/route";
 type Product = {
   id: number;
   code: string;
@@ -23,10 +24,11 @@ type Product = {
 };
 const product = cache(async (id: number) => {
   await setupProductImages();
+  await setupProducts();
   await setupSpecialPrice();
   await setupCategories();
   return env.DB.prepare(
-    `SELECT p.id,p.code,p.name_ar,p.name_en,p.variant,p.sale_price,p.special_price,p.website_quantity FROM products p WHERE p.id=? AND p.archived=0 AND p.visible_on_website=1 AND EXISTS(SELECT 1 FROM categories category WHERE category.slug=p.category AND category.visible_on_website=1)`,
+    `SELECT p.id,p.code,p.name_ar,p.name_en,p.variant,p.sale_price,p.special_price,p.website_quantity FROM products p WHERE p.id=? AND p.archived=0 AND p.visible_on_website=1 AND (p.website_quantity>0 OR p.show_when_out_of_stock=1) AND EXISTS(SELECT 1 FROM categories category WHERE category.slug=p.category AND category.visible_on_website=1)`,
   )
     .bind(id)
     .first<Product>();
