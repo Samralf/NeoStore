@@ -512,11 +512,11 @@ function ProductForm({
               type="checkbox"
               defaultChecked={values.visibleOnWebsite}
             />{" "}
-            إظهار الصنف على الموقع الرسمي
+            إظهار الصنف على الموقع عندما يكون متوفرًا في المخزون
           </label>
           <label className="check wide">
             <input name="showWhenOutOfStock" type="checkbox" defaultChecked={values.showWhenOutOfStock} />{" "}
-            عرض المنتج عند نفاد مخزون الموقع مع زر «بلغني لما يتوفر»
+            عرض الصنف عند نفاد المخزون مع زر «بلغني لما يتوفر» (مستقل عن الخيار السابق)
           </label>
         </div>
         <div className="form-actions">

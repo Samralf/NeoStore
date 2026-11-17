@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Too many requests. Try again later." }, { status: 429 });
   await setupProducts();
   const product = await env.DB.prepare(`SELECT id,code,name_ar,name_en,website_quantity FROM products
-    WHERE id=? AND archived=0 AND visible_on_website=1 AND show_when_out_of_stock=1
+    WHERE id=? AND archived=0 AND website_quantity<=0 AND show_when_out_of_stock=1
     AND EXISTS(SELECT 1 FROM categories c WHERE c.slug=products.category AND c.visible_on_website=1)`)
     .bind(productId).first<{ id: number; code: string; name_ar: string; name_en: string | null; website_quantity: number }>();
   if (!product || product.website_quantity > 0)

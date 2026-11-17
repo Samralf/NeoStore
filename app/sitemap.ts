@@ -3,15 +3,17 @@ import { env } from "cloudflare:workers";
 import { setupProductImages } from "../lib/product-images";
 import { publicSiteUrl } from "../lib/site-url";
 import { setupCategories } from "../lib/categories";
+import { setupProducts } from "./api/products/route";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = publicSiteUrl();
   if (!origin) return [];
   await setupProductImages();
   await setupCategories();
+  await setupProducts();
   const products = await env.DB.prepare(
     `SELECT p.id,p.updated_at FROM products p
-     WHERE p.archived=0 AND p.visible_on_website=1
+     WHERE p.archived=0 AND ((p.website_quantity>0 AND p.visible_on_website=1) OR (p.website_quantity<=0 AND p.show_when_out_of_stock=1))
      AND EXISTS(SELECT 1 FROM product_images image WHERE image.product_id=p.id)
      AND EXISTS(SELECT 1 FROM categories category WHERE category.slug=p.category AND category.visible_on_website=1)
      ORDER BY p.id`,
