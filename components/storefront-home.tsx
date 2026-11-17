@@ -11,11 +11,16 @@ const equipmentCategories=new Set(['tools','grinders','machines','filter']);
 export default function StorefrontHome(props:Props){
  const {arabic,items,categories,loading,error,count,userName,onLanguage,onAccount,onCart,onAdd,onSelect,onRetry}=props;
  const [search,setSearch]=useState(''),[category,setCategory]=useState('all'),[freeShipping,setFreeShipping]=useState(false),[announcement,setAnnouncement]=useState('');
+ const [heroPage,setHeroPage]=useState(0),[heroPaused,setHeroPaused]=useState(false);
  useEffect(()=>{setSearch(new URLSearchParams(window.location.search).get('q')||'');},[]);
  const t=(en:string,ar:string)=>arabic?ar:en;
  useEffect(()=>{let active=true;fetch('/api/store/shipping').then(r=>r.ok?r.json<{freeShipping:boolean}>():null).then(d=>{if(active)setFreeShipping(d?.freeShipping===true);}).catch(()=>{});return()=>{active=false;};},[]);
  const coffees=items.filter(p=>p.cat==='coffee'),equipment=items.filter(p=>equipmentCategories.has(p.cat));
- const heroProduct=coffees.find(p=>p.image)||items.find(p=>p.image);
+ const heroProducts=items.filter(p=>p.available>0&&p.image);
+ const heroPages=Math.ceil(heroProducts.length/3);
+ const currentHeroPage=heroPages?heroPage%heroPages:0;
+ const visibleHeroProducts=heroProducts.length?Array.from({length:Math.min(3,heroProducts.length)},(_,index)=>heroProducts[(currentHeroPage*3+index)%heroProducts.length]):[];
+ useEffect(()=>{if(heroPages<2||heroPaused||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const timer=window.setInterval(()=>setHeroPage(page=>(page+1)%heroPages),5000);return()=>window.clearInterval(timer);},[heroPages,heroPaused]);
  const matching=items.filter(p=>(category==='all'||p.cat===category)&&`${p.name} ${p.ar} ${p.detail}`.toLowerCase().includes(search.trim().toLowerCase()));
  const featured=search||category!=='all'?matching:[...coffees.slice(0,2),...equipment.slice(0,2),...items.filter(p=>p.cat!=='coffee'&&!equipmentCategories.has(p.cat))].slice(0,4);
  const categoryName=(slug:string)=>{const c=categories.find(c=>c.slug===slug);return c?(arabic?c.name_ar:c.name_en):slug;};
@@ -52,10 +57,15 @@ export default function StorefrontHome(props:Props){
     <div className="neo-hero-actions"><a className="neo-button" href="#coffee">{t('Shop Coffee','تسوق القهوة')}<StoreIcon name="arrow"/></a><a className="neo-button neo-button-outline" href="#equipment">{t('Explore Grinders & Tools','اكتشف المطاحن والأدوات')}</a></div>
     <div className="neo-hero-foot"><span className="neo-line"/><p>{t('CURATED WITH CARE. BREWED YOUR WAY.','نختارها بعناية. وتحضرها على ذوقك.')}</p></div>
    </div>
-   <div className="neo-hero-visual"><span className="neo-orbit neo-orbit-one"/><span className="neo-orbit neo-orbit-two"/><div className="neo-hero-label"><StoreIcon name="cup"/><span>{t('A GOOD DAY','يوم جميل')}<br/><b>{t('starts with coffee','يبدأ بقهوة')}</b></span></div>
+   <div className="neo-hero-visual" onPointerEnter={event=>{if(event.pointerType==='mouse')setHeroPaused(true);}} onPointerLeave={event=>{if(event.pointerType==='mouse')setHeroPaused(false);}} onFocusCapture={()=>setHeroPaused(true)} onBlurCapture={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHeroPaused(false);}}><span className="neo-orbit neo-orbit-one"/><span className="neo-orbit neo-orbit-two"/><div className="neo-hero-label"><StoreIcon name="cup"/><span>{t('A GOOD DAY','يوم جميل')}<br/><b>{t('starts with coffee','يبدأ بقهوة')}</b></span></div>
     <span className="neo-vertical-word">THE COFFEE EDIT / 01</span>
-    {heroProduct?<a className="neo-hero-product" href={`/product/${heroProduct.id}?lang=${arabic?"ar":"en"}`} onClick={()=>onSelect(heroProduct.id)} aria-label={arabic?heroProduct.ar:heroProduct.name}><img src={heroProduct.image!} width="600" height="600" fetchPriority="high" alt={arabic?heroProduct.ar:heroProduct.name}/></a>:<div className="neo-hero-placeholder"><StoreIcon name="cup" width="160" height="160"/></div>}
-    <div className="neo-hero-caption"><span>{t('DISCOVER YOUR NEXT FAVOURITE','اكتشف اختيارك القادم')}</span><b>{heroProduct?t(heroProduct.name,heroProduct.ar):t('Your daily coffee ritual','لحظة قهوتك اليومية')}</b><a href="#coffee" aria-label={t('Explore coffee','اكتشف القهوة')}><StoreIcon name="arrow"/></a></div>
+    {visibleHeroProducts.length?<div className="neo-hero-products" key={currentHeroPage} aria-label={t('Available products','منتجات متوفرة')}>
+     {visibleHeroProducts.map((product,index)=><a className="neo-hero-item" key={product.id} href={`/product/${product.id}?lang=${arabic?'ar':'en'}`} onClick={()=>onSelect(product.id)}>
+      <span className="neo-hero-item-image"><img src={product.image!} width="300" height="300" loading={currentHeroPage===0&&index===0?'eager':'lazy'} alt={arabic?product.ar:product.name}/></span>
+      <span className="neo-hero-item-name">{arabic?product.ar:product.name}</span><span className="neo-hero-item-price">{product.price.toLocaleString(arabic?'ar-EG':'en-EG')} {t('EGP','ج.م')}{product.price<product.originalPrice&&<del>{product.originalPrice.toLocaleString(arabic?'ar-EG':'en-EG')}</del>}</span>
+     </a>)}
+    </div>:<div className="neo-hero-placeholder"><StoreIcon name="cup" width="160" height="160"/></div>}
+    <div className="neo-hero-carousel-bar"><span>{heroProducts.length?t(`${heroProducts.length} products in stock`,`${heroProducts.length} منتج متوفر`):t('Discover our collection','اكتشف منتجاتنا')}</span>{heroPages>1&&<div className="neo-hero-carousel-controls"><button type="button" onClick={()=>setHeroPage(page=>(page-1+heroPages)%heroPages)} aria-label={t('Previous three products','الثلاثة منتجات السابقة')}>‹</button><span>{currentHeroPage+1} / {heroPages}</span><button type="button" onClick={()=>setHeroPage(page=>(page+1)%heroPages)} aria-label={t('Next three products','الثلاثة منتجات التالية')}>›</button></div>}</div>
    </div>
   </section>
   <section className="neo-trust" aria-label={t('Why shop Neo Coffee','لماذا نيو كافي')}>

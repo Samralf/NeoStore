@@ -25,3 +25,16 @@
 .neo-storefront[dir=rtl] .neo-hero-search{padding:5px 16px 5px 5px}
 @media(max-width:700px){.neo-hero-search{width:100%;margin-top:21px;gap:8px}.neo-hero-search input{font-size:13px}.neo-hero-search button{padding:0 15px}}
 @media(prefers-reduced-motion:reduce){.neo-hero-search,.neo-hero-search button{transition:none}}
+
+/* The hero advances through real in-stock catalogue products, three at a time. */
+.neo-hero-products{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:calc(100% - 54px);margin-top:18px;animation:neo-hero-enter .45s ease both}
+.neo-hero-item{min-width:0;min-height:325px;display:flex;flex-direction:column;align-items:center;padding:13px 10px 16px;background:#fffaf1d9;border:1px solid #ffffffb8;border-radius:12px;box-shadow:0 15px 28px #4b34231c;color:var(--neo-ink);text-align:center;transition:transform .2s,box-shadow .2s}
+.neo-hero-item:hover{transform:translateY(-5px);box-shadow:0 20px 34px #4b34232d}.neo-hero-item:focus-visible{outline:3px solid #74513c;outline-offset:3px}
+.neo-hero-item-image{width:100%;height:225px;display:grid;place-items:center}.neo-hero-item-image img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;filter:drop-shadow(8px 13px 10px #4b34232c)}
+.neo-hero-item-name{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:34px;line-height:1.4;font-size:11px;font-weight:700}.neo-hero-item-price{margin-top:auto;padding-top:8px;color:#79523b;font-size:13px;font-weight:700;white-space:nowrap}.neo-hero-item-price del{display:block;color:#8c8174;font-size:9px;font-weight:400}
+.neo-hero-carousel-bar{position:absolute;z-index:2;bottom:24px;left:30px;right:30px;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:42px;padding:6px 8px 6px 16px;background:#fffaf1e8;border:1px solid #ffffffb8;border-radius:9px;color:#5b4637;font-size:11px;backdrop-filter:blur(10px)}
+.neo-hero-carousel-controls{display:flex;align-items:center;gap:10px;white-space:nowrap}.neo-hero-carousel-controls button{width:32px;height:32px;display:grid;place-items:center;border:1px solid #c8bba9;border-radius:6px;background:#fff;color:#403126;font-size:22px;line-height:1;cursor:pointer}.neo-hero-carousel-controls button:hover{background:#eee4d5}.neo-hero-carousel-controls button:focus-visible{outline:2px solid #74513c;outline-offset:2px}
+@keyframes neo-hero-enter{from{opacity:.35;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:1050px){.neo-hero-products{width:calc(100% - 36px);gap:7px}.neo-hero-item{min-height:275px;padding:9px 6px 11px}.neo-hero-item-image{height:180px}.neo-hero-item-name{font-size:10px}}
+@media(max-width:760px){.neo-hero-products{width:calc(100% - 28px);gap:6px;margin-top:0}.neo-hero-item{min-height:220px;padding:7px 5px 9px;border-radius:8px}.neo-hero-item-image{height:140px}.neo-hero-item-name{min-height:29px;font-size:9px}.neo-hero-item-price{font-size:10px}.neo-hero-item-price del{font-size:8px}.neo-hero-carousel-bar{left:14px;right:14px;bottom:14px;font-size:9px;padding:5px 6px 5px 10px}.neo-hero-carousel-controls{gap:6px}.neo-hero-carousel-controls button{width:28px;height:28px}}
+@media(prefers-reduced-motion:reduce){.neo-hero-products{animation:none}.neo-hero-item{transition:none}}
