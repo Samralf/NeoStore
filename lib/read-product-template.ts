@@ -1,7 +1,7 @@
 import {unzipSync} from 'fflate';
 
 export const productColumns=['code','barcode','name_ar','name_en','category','variant','purchase_price','operating_cost','sale_price','special_price','stock_quantity','website_quantity','minimum_stock','visible_on_website','expiry_date','batch_number'] as const;
-export type ProductDraft=Record<(typeof productColumns)[number],string|number>;
+export type ProductDraft=Record<(typeof productColumns)[number],string|number>&{__sheetRow:number};
 const decoder=new TextDecoder();
 function xml(value:Uint8Array|undefined,label:string){if(!value)throw Error(`الملف لا يحتوي على ${label}`);const document=new DOMParser().parseFromString(decoder.decode(value),'application/xml');if(document.querySelector('parsererror'))throw Error('ملف Excel غير صالح');return document;}
 const nodes=(element:Element|Document,name:string)=>Array.from(element.getElementsByTagNameNS('*',name));
@@ -13,7 +13,7 @@ export async function readProductTemplate(file:File):Promise<ProductDraft[]>{
  const sheet=xml(archive['xl/worksheets/sheet1.xml'],'ورقة المنتجات');
  const shared=archive['xl/sharedStrings.xml']?nodes(xml(archive['xl/sharedStrings.xml'],'النصوص'),'si').map(item=>nodes(item,'t').map(text=>text.textContent||'').join('')):[];
  const rows=nodes(sheet,'row').map(row=>{
-  const result:Record<string,string|number>={};
+  const result:Record<string,string|number>={__sheetRow:Number(row.getAttribute('r'))};
   for(const cell of nodes(row,'c')){
    const reference=cell.getAttribute('r')||'',column=reference.match(/^[A-Z]+/)?.[0];if(!column)continue;
    if(nodes(cell,'f').length)throw Error('لا يمكن استيراد خلايا بها معادلات. استخدم قيمًا ثابتة.');
@@ -24,10 +24,10 @@ export async function readProductTemplate(file:File):Promise<ProductDraft[]>{
   return result;
  });
  const header=rows.shift();if(!header||productColumns.some((name,index)=>header[String.fromCharCode(65+index)]!==name))throw Error('استخدم قالب المنتجات الذي تم تنزيله من النظام دون تغيير أسماء الأعمدة.');
- const products=rows.filter(row=>Object.values(row).some(value=>String(value).trim()!==''));
+ const products=rows.filter(row=>Object.entries(row).some(([key,value])=>key!=='__sheetRow'&&String(value).trim()!==''));
  if(products.length<1||products.length>200)throw Error('أدخل من ١ إلى ٢٠٠ منتج في الشيت.');
- return products.map(row=>Object.fromEntries(productColumns.map((name,index)=>{
+ return products.map(row=>({...Object.fromEntries(productColumns.map((name,index)=>{
   const value=row[String.fromCharCode(65+index)]??'';
   return [name,name==='expiry_date'&&typeof value==='number'?excelDate(value):value];
- })) as ProductDraft);
+ })),__sheetRow:Number(row.__sheetRow)||2}) as ProductDraft);
 }

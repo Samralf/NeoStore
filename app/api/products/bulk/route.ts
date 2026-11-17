@@ -14,10 +14,10 @@ const number=(value:unknown)=>value===''||value===null||value===undefined?null:N
 function parse(rows:Draft[],categories:Set<string>){
  const issues:Issue[]=[],products:Product[]=[],codes=new Set<string>(),barcodes=new Set<string>();
  rows.forEach((row,index)=>{
-  const line=index+2;
+  const sheetRow=Number(row?.__sheetRow),line=Number.isSafeInteger(sheetRow)&&sheetRow>=2&&sheetRow<=10000?sheetRow:index+2;
   const issue=(field:string,message:string)=>issues.push({row:line,field,message});
   if(!row||typeof row!=='object'||Array.isArray(row)){issue('row','الصف غير صالح');return;}
-  for(const key of Object.keys(row))if(!fields.includes(key))issue(key,'عمود غير معروف');
+  for(const key of Object.keys(row))if(key!=='__sheetRow'&&!fields.includes(key))issue(key,'عمود غير معروف');
   const value=Object.fromEntries(fields.map(key=>[key,plain(row[key])])) as Record<string,string>;
   for(const key of ['code','barcode','name_ar','name_en','category','variant','batch_number'])if(value[key].length>160)issue(key,'النص طويل جدًا');
   if(!value.code)issue('code','الكود مطلوب');else if(codes.has(value.code.toLowerCase()))issue('code','الكود مكرر داخل الشيت');else codes.add(value.code.toLowerCase());
@@ -49,13 +49,16 @@ export async function POST(request:Request){
  const categoryRows=await env.DB.prepare('SELECT slug FROM categories').all<{slug:string}>();
  const {issues,products}=parse(body.rows,new Set(categoryRows.results.map(row=>row.slug)));
  const codes=products.map(row=>row.code),barcodes=products.map(row=>row.barcode).filter((value):value is string=>!!value);
- if(codes.length){const found=await env.DB.prepare(`SELECT code,barcode FROM products WHERE code IN (${codes.map(()=>'?').join(',')}) OR barcode IN (${barcodes.length?barcodes.map(()=>'?').join(','):'NULL'})`).bind(...codes,...barcodes).all<{code:string;barcode:string|null}>();for(const existing of found.results){products.forEach((product,index)=>{if(product.code===existing.code)issues.push({row:index+2,field:'code',message:'الكود موجود في النظام'});if(product.barcode&&product.barcode===existing.barcode)issues.push({row:index+2,field:'barcode',message:'الباركود موجود في النظام'});});}}
+ if(codes.length){const found=await env.DB.prepare(`SELECT code,barcode FROM products WHERE code IN (${codes.map(()=>'?').join(',')}) OR barcode IN (${barcodes.length?barcodes.map(()=>'?').join(','):'NULL'})`).bind(...codes,...barcodes).all<{code:string;barcode:string|null}>();for(const existing of found.results){products.forEach((product,index)=>{const sheetRow=Number(body.rows![index]?.__sheetRow),line=Number.isSafeInteger(sheetRow)&&sheetRow>=2&&sheetRow<=10000?sheetRow:index+2;if(product.code===existing.code)issues.push({row:line,field:'code',message:'الكود موجود في النظام'});if(product.barcode&&product.barcode===existing.barcode)issues.push({row:line,field:'barcode',message:'الباركود موجود في النظام'});});}}
  if(body.action==='preview'||issues.length)return reply({valid:issues.length===0,count:products.length,issues});
  const now=new Date().toISOString(),statements=[];
  for(const product of products){
   statements.push(env.DB.prepare('INSERT INTO products(code,barcode,name_ar,name_en,category,variant,purchase_price,operating_cost,sale_price,special_price,stock_quantity,website_quantity,minimum_stock,visible_on_website,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(product.code,product.barcode,product.name_ar,product.name_en,product.category,product.variant,product.purchase_price,product.operating_cost,product.sale_price,product.special_price,product.stock_quantity,product.website_quantity,product.minimum_stock,product.visible_on_website,now,now));
   if(product.expiry_date)statements.push(env.DB.prepare('INSERT INTO inventory_batches(product_id,batch_number,expiry_date,received_quantity,remaining_quantity,unit_cost,received_at) SELECT id,?,?,?,?,?,? FROM products WHERE code=?').bind(product.batch_number||`B-${product.code}`,product.expiry_date,product.stock_quantity,product.stock_quantity,product.purchase_price+product.operating_cost,now,product.code));
  }
- try{await env.DB.batch(statements);await writeAudit('products_bulk_imported',clientIp(request));return reply({ok:true,count:products.length});}
+ try{await env.DB.batch(statements);}
  catch{return reply({error:'تعذر حفظ الشيت. راجع الأكواد والباركود ثم أعد المعاينة؛ لم تُحفظ منتجات من هذا الملف.'},409);}
+ // The import is already committed. An audit-log failure must not invite a duplicate retry.
+ await writeAudit('products_bulk_imported',clientIp(request)).catch(()=>undefined);
+ return reply({ok:true,count:products.length});
 }

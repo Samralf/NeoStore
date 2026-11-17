@@ -11,12 +11,13 @@ registerHooks({resolve(specifier,context,next){
 }});
 const db=new DatabaseSync(':memory:');
 let failCode='';
+let failAudit=false;
 class Statement{
  constructor(sql,args=[]){this.sql=sql;this.args=args;}
  bind(...args){return new Statement(this.sql,args);}
  async first(){return db.prepare(this.sql).get(...this.args)||null;}
  async all(){return {results:db.prepare(this.sql).all(...this.args)};}
- execute(){if(failCode&&this.sql.startsWith('INSERT INTO products(')&&this.args[0]===failCode)throw Error('Injected database failure');const r=db.prepare(this.sql).run(...this.args);return {meta:{changes:r.changes,last_row_id:Number(r.lastInsertRowid)}};}
+ execute(){if(failCode&&this.sql.startsWith('INSERT INTO products(')&&this.args[0]===failCode)throw Error('Injected database failure');if(failAudit&&this.sql.startsWith('INSERT INTO admin_audit_log'))throw Error('Injected audit failure');const r=db.prepare(this.sql).run(...this.args);return {meta:{changes:r.changes,last_row_id:Number(r.lastInsertRowid)}};}
  async run(){return this.execute();}
 }
 globalThis.testEnv={SESSION_SECRET:'bulk-test-secret',ADMIN_PASSWORD_HASH:'configured',DB:{prepare:sql=>new Statement(sql),async batch(statements){db.exec('BEGIN');try{const out=statements.map(s=>s.execute());db.exec('COMMIT');return out;}catch(error){db.exec('ROLLBACK');throw error;}}}};
@@ -34,6 +35,10 @@ test('preview catches duplicate codes and invalid stock without writing',async()
  assert.equal(result.valid,false);assert.ok(result.issues.some(x=>x.field==='code'));assert.ok(result.issues.some(x=>x.field==='website_quantity'));
  assert.equal(db.prepare('SELECT COUNT(*) n FROM products').get().n,0);
 });
+test('preview reports the original Excel row after blank lines',async()=>{
+ const result=await (await route.POST(request('preview',[product('GAP',{__sheetRow:9,website_quantity:20})]))).json();
+ assert.ok(result.issues.some(x=>x.row===9&&x.field==='website_quantity'));
+});
 test('commit saves products and expiry batches, then blocks repeated import',async()=>{
  const rows=[product('P1',{barcode:'1234',expiry_date:'2027-12-31',batch_number:'B1'}),product('P2')];
  const preview=await (await route.POST(request('preview',rows))).json();assert.equal(preview.valid,true);
@@ -49,4 +54,11 @@ test('a database failure rolls back every row in the upload',async()=>{
  failCode='';
  assert.equal(response.status,409);
  assert.equal(db.prepare("SELECT COUNT(*) n FROM products WHERE code IN ('P3','P4')").get().n,0);
+});
+test('audit failure does not report an already committed import as failed',async()=>{
+ failAudit=true;
+ const response=await route.POST(request('commit',[product('P5')]));
+ failAudit=false;
+ assert.equal(response.status,200);assert.equal((await response.json()).ok,true);
+ assert.equal(db.prepare("SELECT COUNT(*) n FROM products WHERE code='P5'").get().n,1);
 });
