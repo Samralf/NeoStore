@@ -255,8 +255,8 @@ export default function StoreCart({
                         <small>
                           {m.configured === false
                             ? tr(
-                                "Not available yet",
-                                "غير متاحة حتى اكتمال الإعداد",
+                                m.id === "paymob" ? "Paymob test checkout is pending activation" : "Not available yet",
+                                m.id === "paymob" ? "اختبار Paymob قيد التجهيز" : "غير متاحة حتى اكتمال الإعداد",
                               )
                             : m.id === "cash"
                               ? tr(

@@ -19,8 +19,8 @@ export async function GET() {
         },
         c.paymob && {
           id: "paymob",
-          nameEn: "Bank cards",
-          nameAr: "بطاقات بنكية",
+          nameEn: "Bank cards — Paymob (test pending)",
+          nameAr: "بطاقات بنكية — Paymob (الاختبار قيد التجهيز)",
           configured: c.paymobConfigured,
         },
       ].filter(Boolean),
