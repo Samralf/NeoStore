@@ -5,6 +5,7 @@ import { StoreIcon } from './storefront-icons';
 import './storefront.css';
 
 export type StorefrontProduct={id:number;name:string;ar:string;cat:string;price:number;originalPrice:number;detail:string;available:number;image:string|null;rating?:number;reviewCount?:number};
+type HeroStockProduct={id:number;name_ar:string;name_en?:string|null;category?:string;sale_price:number;special_price?:number|null;website_quantity:number;image_url?:string|null};
 type Category={id:number;slug:string;name_en:string;name_ar:string};
 type Props={arabic:boolean;items:StorefrontProduct[];categories:Category[];loading:boolean;error:boolean;count:number;userName?:string;onLanguage:()=>void;onAccount:()=>void;onCart:()=>void;onAdd:(id:number)=>void;onSelect:(id:number)=>void;onRetry:()=>void};
 const equipmentCategories=new Set(['tools','grinders','machines','filter']);
@@ -12,11 +13,15 @@ export default function StorefrontHome(props:Props){
  const {arabic,items,categories,loading,error,count,userName,onLanguage,onAccount,onCart,onAdd,onSelect,onRetry}=props;
  const [search,setSearch]=useState(''),[category,setCategory]=useState('all'),[freeShipping,setFreeShipping]=useState(false),[announcement,setAnnouncement]=useState('');
  const [heroPage,setHeroPage]=useState(0),[heroPaused,setHeroPaused]=useState(false);
+ const [heroInventory,setHeroInventory]=useState<StorefrontProduct[]|null>(null);
  useEffect(()=>{setSearch(new URLSearchParams(window.location.search).get('q')||'');},[]);
  const t=(en:string,ar:string)=>arabic?ar:en;
  useEffect(()=>{let active=true;fetch('/api/store/shipping').then(r=>r.ok?r.json<{freeShipping:boolean}>():null).then(d=>{if(active)setFreeShipping(d?.freeShipping===true);}).catch(()=>{});return()=>{active=false;};},[]);
+ // Refresh the hero independently so stock changes and newly published products appear without a page reload.
+ useEffect(()=>{let active=true;async function refresh(){if(document.hidden)return;try{const response=await fetch(`/api/store/products?hero=${Date.now()}`,{cache:'no-store'});if(!response.ok)return;const products=await response.json() as HeroStockProduct[];if(!Array.isArray(products)||!active)return;setHeroInventory(products.map(p=>({id:p.id,name:p.name_en?.trim()||p.name_ar,ar:p.name_ar,cat:p.category||'coffee',price:Number(p.special_price)>0&&Number(p.special_price)<Number(p.sale_price)?Number(p.special_price):Number(p.sale_price),originalPrice:Number(p.sale_price),detail:'',available:Number(p.website_quantity),image:p.image_url||null})));}catch{/* Keep the last valid catalogue while the connection recovers. */}}
+  void refresh();const timer=window.setInterval(()=>void refresh(),30000);document.addEventListener('visibilitychange',refresh);return()=>{active=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh);};},[]);
  const coffees=items.filter(p=>p.cat==='coffee'),equipment=items.filter(p=>equipmentCategories.has(p.cat));
- const heroProducts=items.filter(p=>p.available>0&&p.image);
+ const heroProducts=(heroInventory??items).filter(p=>p.available>0&&p.image);
  const heroPages=Math.ceil(heroProducts.length/3);
  const currentHeroPage=heroPages?heroPage%heroPages:0;
  const visibleHeroProducts=heroProducts.length?Array.from({length:Math.min(3,heroProducts.length)},(_,index)=>heroProducts[(currentHeroPage*3+index)%heroProducts.length]):[];
